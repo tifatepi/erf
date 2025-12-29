@@ -90,6 +90,8 @@ const StudentList: React.FC<StudentListProps> = ({ students, onAddStudent, onUpd
         await onAddStudent(payload);
       }
       setIsModalOpen(false);
+    } catch (err) {
+      console.error("Submit error:", err);
     } finally {
       setIsSubmitting(false);
     }
@@ -277,7 +279,10 @@ const StudentList: React.FC<StudentListProps> = ({ students, onAddStudent, onUpd
                       placeholder="0,00"
                       className="w-full pl-10 pr-5 py-4 bg-slate-50 border-none rounded-2xl text-sm font-black focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
                       value={formData.monthlyFee || ''}
-                      onChange={e => setFormData({...formData, monthlyFee: parseFloat(e.target.value)})}
+                      onChange={e => {
+                        const val = parseFloat(e.target.value);
+                        setFormData({...formData, monthlyFee: isNaN(val) ? 0 : val});
+                      }}
                     />
                   </div>
                 </div>

@@ -81,7 +81,7 @@ export const db = {
         school: s.school,
         subjects: s.subjects || [],
         guardianId: s.guardian_id,
-        monthlyFee: s.monthly_fee // Novo mapeamento
+        monthlyFee: s.monthly_fee
       })) as Student[];
     },
     async create(student: Partial<Student>) {
@@ -92,10 +92,10 @@ export const db = {
         school: student.school,
         subjects: student.subjects,
         guardian_id: student.guardianId,
-        monthly_fee: student.monthlyFee // Novo campo
+        monthly_fee: student.monthlyFee || 0
       }]).select();
       if (error) {
-        console.error("Erro Supabase (Student):", error);
+        console.error("Erro Supabase (Create Student):", error);
         throw error;
       }
       return { 
@@ -106,15 +106,29 @@ export const db = {
       } as Student;
     },
     async update(id: string, updates: Partial<Student>) {
-      const { data, error } = await supabase.from('students').update({
+      // Construir objeto de atualização para evitar envio de campos undefined
+      const payload: any = {
         name: updates.name,
         birth_date: updates.birthDate,
         grade: updates.grade,
         school: updates.school,
         subjects: updates.subjects,
-        monthly_fee: updates.monthlyFee // Novo campo
-      }).eq('id', id).select();
-      if (error) throw error;
+        monthly_fee: updates.monthlyFee || 0
+      };
+
+      const { data, error } = await supabase
+        .from('students')
+        .update(payload)
+        .eq('id', id)
+        .select();
+
+      if (error) {
+        console.error("Erro Supabase (Update Student):", error);
+        throw error;
+      }
+      
+      if (!data || data.length === 0) throw new Error("Nenhum dado retornado na atualização");
+
       return { 
         ...data[0], 
         birthDate: data[0].birth_date,
