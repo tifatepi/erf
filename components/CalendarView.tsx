@@ -1,22 +1,27 @@
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { ClassSession, Student } from '../types';
-import { Calendar as CalendarIcon, Clock, User, Book, X, Plus, Save } from 'lucide-react';
+import { Calendar as CalendarIcon, Clock, User, Book, X, Plus, Save, Search, Check, Trash2, Loader2 } from 'lucide-react';
 
 interface CalendarViewProps {
   classes: ClassSession[];
   students: Student[];
   onAddClass: (classData: Partial<ClassSession>) => Promise<void>;
   onUpdateClass?: (id: string, classData: Partial<ClassSession>) => Promise<void>;
+  onDeleteClass?: (id: string) => Promise<void>;
 }
 
-const CalendarView: React.FC<CalendarViewProps> = ({ classes, students, onAddClass, onUpdateClass }) => {
+const CalendarView: React.FC<CalendarViewProps> = ({ classes, students, onAddClass, onUpdateClass, onDeleteClass }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [editingClass, setEditingClass] = useState<ClassSession | null>(null);
   
+  // Busca interna para o seletor de alunos
+  const [studentSearch, setStudentSearch] = useState('');
+  
   const [formData, setFormData] = useState({
-    studentId: '',
+    studentIds: [] as string[],
     subject: '',
     date: new Date().toISOString().split('T')[0],
     time: '14:00',
@@ -44,10 +49,28 @@ const CalendarView: React.FC<CalendarViewProps> = ({ classes, students, onAddCla
     });
   };
 
+  const filteredStudents = useMemo(() => {
+    return students.filter(s => 
+      s.name.toLowerCase().includes(studentSearch.toLowerCase()) ||
+      s.grade.toLowerCase().includes(studentSearch.toLowerCase())
+    );
+  }, [students, studentSearch]);
+
+  const toggleStudentSelection = (id: string) => {
+    setFormData(prev => {
+      const isSelected = prev.studentIds.includes(id);
+      if (isSelected) {
+        return { ...prev, studentIds: prev.studentIds.filter(sid => sid !== id) };
+      } else {
+        return { ...prev, studentIds: [...prev.studentIds, id] };
+      }
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.studentId || !formData.subject) {
-      alert("Por favor, preencha todos os campos obrigatórios.");
+    if (formData.studentIds.length === 0 || !formData.subject) {
+      alert("Por favor, selecione ao menos um aluno e preencha a disciplina.");
       return;
     }
 
@@ -55,7 +78,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ classes, students, onAddCla
     try {
       if (editingClass && onUpdateClass) {
         await onUpdateClass(editingClass.id, {
-          studentId: formData.studentId,
+          studentId: formData.studentIds[0],
           subject: formData.subject,
           date: formData.date,
           time: formData.time,
@@ -63,50 +86,81 @@ const CalendarView: React.FC<CalendarViewProps> = ({ classes, students, onAddCla
           status: formData.status
         });
       } else {
-        await onAddClass({
-          studentId: formData.studentId,
-          subject: formData.subject,
-          date: formData.date,
-          time: formData.time,
-          notes: formData.notes,
-          status: 'SCHEDULED'
-        });
+        const promises = formData.studentIds.map(sid => 
+          onAddClass({
+            studentId: sid,
+            subject: formData.subject,
+            date: formData.date,
+            time: formData.time,
+            notes: formData.notes,
+            status: 'SCHEDULED'
+          })
+        );
+        await Promise.all(promises);
       }
       closeModal();
+    } catch (error) {
+      console.error(error);
+      alert("Erro ao salvar agendamento.");
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!editingClass || !onDeleteClass) {
+      console.warn("Nenhuma aula selecionada ou função onDeleteClass ausente.");
+      return;
+    }
+    
+    if (window.confirm("Tem certeza que deseja excluir permanentemente este agendamento?")) {
+      setIsDeleting(true);
+      try {
+        console.log("CalendarView: Chamando onDeleteClass para ID", editingClass.id);
+        await onDeleteClass(editingClass.id);
+        closeModal();
+      } catch (error) {
+        console.error("CalendarView: Erro ao excluir aula", error);
+        alert("Não foi possível excluir a aula. Verifique sua conexão.");
+      } finally {
+        setIsDeleting(false);
+      }
     }
   };
 
   const openModal = (date?: string) => {
     setEditingClass(null);
     setFormData({
-      studentId: '',
+      studentIds: [],
       subject: '',
       date: date || new Date().toISOString().split('T')[0],
       time: '14:00',
       notes: '',
       status: 'SCHEDULED'
     });
+    setStudentSearch('');
     setIsModalOpen(true);
   };
 
   const openEditModal = (c: ClassSession) => {
     setEditingClass(c);
     setFormData({
-      studentId: c.studentId,
+      studentIds: [c.studentId],
       subject: c.subject,
       date: c.date,
       time: c.time,
       notes: c.notes || '',
       status: c.status
     });
+    setStudentSearch('');
     setIsModalOpen(true);
   };
 
   const closeModal = () => {
     setIsModalOpen(false);
     setEditingClass(null);
+    setIsDeleting(false);
+    setIsSubmitting(false);
   };
 
   return (
@@ -188,12 +242,12 @@ const CalendarView: React.FC<CalendarViewProps> = ({ classes, students, onAddCla
 
       {isModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-md p-4 animate-fade-in">
-          <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-lg overflow-hidden border border-white/20">
+          <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-xl overflow-hidden border border-white/20">
             <div className={`p-8 border-b flex items-center justify-between text-white ${editingClass ? 'bg-amber-500' : 'bg-indigo-600'}`}>
               <div>
                 <h3 className="font-black text-2xl tracking-tight">{editingClass ? 'Editar Aula' : 'Agendar Aula'}</h3>
                 <p className="text-white/80 text-xs font-bold uppercase tracking-widest mt-1">
-                  {editingClass ? 'Atualize as informações da sessão' : 'Disponível para todos os dias'}
+                  {editingClass ? 'Atualize as informações da sessão' : 'Você pode selecionar vários alunos para aulas em grupo'}
                 </p>
               </div>
               <button onClick={closeModal} className="hover:bg-white/10 p-2 rounded-2xl transition-all">
@@ -203,18 +257,56 @@ const CalendarView: React.FC<CalendarViewProps> = ({ classes, students, onAddCla
             
             <form onSubmit={handleSubmit} className="p-8 space-y-4">
               <div className="space-y-1">
-                <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Aluno</label>
-                <select 
-                  required
-                  className="w-full px-5 py-3.5 bg-slate-50 border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-                  value={formData.studentId}
-                  onChange={e => setFormData({...formData, studentId: e.target.value})}
-                >
-                  <option value="">Selecione um aluno...</option>
-                  {students.map(s => (
-                    <option key={s.id} value={s.id}>{s.name} ({s.grade})</option>
-                  ))}
-                </select>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                    Alunos ({formData.studentIds.length})
+                  </label>
+                  {!editingClass && (
+                    <div className="relative w-48">
+                      <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                      <input 
+                        type="text" 
+                        placeholder="Buscar aluno..."
+                        className="w-full pl-8 pr-3 py-1 bg-slate-50 border-none rounded-lg text-[10px] font-bold focus:ring-1 focus:ring-indigo-400 outline-none transition-all"
+                        value={studentSearch}
+                        onChange={e => setStudentSearch(e.target.value)}
+                      />
+                    </div>
+                  )}
+                </div>
+                
+                <div className="max-h-40 overflow-y-auto bg-slate-50 rounded-2xl p-3 border border-slate-100 grid grid-cols-2 gap-2">
+                  {editingClass ? (
+                    <div className="col-span-2 flex items-center gap-3 p-2 bg-indigo-50 border border-indigo-100 rounded-xl">
+                      <Check size={14} className="text-indigo-600" />
+                      <span className="text-sm font-bold text-indigo-700">{getStudentName(formData.studentIds[0])}</span>
+                    </div>
+                  ) : (
+                    filteredStudents.map(student => (
+                      <button
+                        key={student.id}
+                        type="button"
+                        onClick={() => toggleStudentSelection(student.id)}
+                        className={`flex items-center gap-3 p-2.5 rounded-xl border text-left transition-all ${
+                          formData.studentIds.includes(student.id)
+                          ? 'bg-indigo-600 border-indigo-600 text-white shadow-md'
+                          : 'bg-white border-slate-100 text-slate-600 hover:border-indigo-300'
+                        }`}
+                      >
+                        <div className={`w-4 h-4 rounded-md border flex items-center justify-center ${formData.studentIds.includes(student.id) ? 'bg-white/20 border-white' : 'bg-slate-50 border-slate-200'}`}>
+                          {formData.studentIds.includes(student.id) && <Check size={10} />}
+                        </div>
+                        <div className="min-w-0">
+                          <p className={`text-[11px] font-bold truncate ${formData.studentIds.includes(student.id) ? 'text-white' : 'text-slate-800'}`}>{student.name}</p>
+                          <p className={`text-[9px] font-medium ${formData.studentIds.includes(student.id) ? 'text-indigo-100' : 'text-slate-400'}`}>{student.grade}</p>
+                        </div>
+                      </button>
+                    ))
+                  )}
+                  {filteredStudents.length === 0 && !editingClass && (
+                    <p className="col-span-2 text-center py-4 text-xs font-medium text-slate-400 italic">Nenhum aluno encontrado.</p>
+                  )}
+                </div>
               </div>
 
               <div className="space-y-1">
@@ -267,32 +359,44 @@ const CalendarView: React.FC<CalendarViewProps> = ({ classes, students, onAddCla
               <div className="space-y-1">
                 <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Observações</label>
                 <textarea 
-                  className="w-full px-5 py-3.5 bg-slate-50 border-none rounded-2xl text-sm font-medium focus:ring-2 focus:ring-indigo-500 outline-none transition-all min-h-[80px]"
+                  className="w-full px-5 py-3.5 bg-slate-50 border-none rounded-2xl text-sm font-medium focus:ring-2 focus:ring-indigo-500 outline-none transition-all min-h-[60px]"
                   value={formData.notes}
                   onChange={e => setFormData({...formData, notes: e.target.value})}
                   placeholder="Detalhes da aula..."
                 ></textarea>
               </div>
 
-              <div className="pt-6 flex gap-4">
+              <div className="pt-4 flex flex-col sm:flex-row gap-4">
+                {editingClass && (
+                  <button 
+                    type="button" 
+                    onClick={handleDelete}
+                    disabled={isDeleting || isSubmitting}
+                    className="order-3 sm:order-1 flex-1 px-6 py-4 bg-rose-50 text-rose-600 border border-rose-100 rounded-2xl text-sm font-black hover:bg-rose-100 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    {isDeleting ? <Loader2 size={18} className="animate-spin" /> : <Trash2 size={18} />}
+                    Excluir
+                  </button>
+                )}
                 <button 
                   type="button" 
                   onClick={closeModal}
-                  className="flex-1 px-6 py-4 bg-slate-100 text-slate-600 rounded-2xl text-sm font-black hover:bg-slate-200 transition-all"
+                  disabled={isSubmitting || isDeleting}
+                  className="order-2 flex-1 px-6 py-4 bg-slate-100 text-slate-600 rounded-2xl text-sm font-black hover:bg-slate-200 transition-all disabled:opacity-50"
                 >
                   Cancelar
                 </button>
                 <button 
                   type="submit"
-                  disabled={isSubmitting}
-                  className={`flex-1 px-6 py-4 text-white rounded-2xl text-sm font-black shadow-xl transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 ${editingClass ? 'bg-amber-500 hover:bg-amber-600 shadow-amber-100' : 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-100'}`}
+                  disabled={isSubmitting || isDeleting || formData.studentIds.length === 0}
+                  className={`order-1 flex-1 px-6 py-4 text-white rounded-2xl text-sm font-black shadow-xl transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 ${editingClass ? 'bg-amber-500 hover:bg-amber-600 shadow-amber-100' : 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-100'}`}
                 >
                   {isSubmitting ? (
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    <Loader2 size={18} className="animate-spin" />
                   ) : (
                     <>
                       <Save size={18} />
-                      {editingClass ? 'Atualizar Aula' : 'Salvar Aula'}
+                      {editingClass ? 'Atualizar Aula' : `Agendar ${formData.studentIds.length > 1 ? `${formData.studentIds.length} Aulas` : 'Aula'}`}
                     </>
                   )}
                 </button>

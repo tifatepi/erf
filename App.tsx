@@ -132,6 +132,18 @@ const App: React.FC = () => {
     }
   };
 
+  const deleteClassSession = async (id: string) => {
+    console.log("App: Solicitando exclusão da aula", id);
+    try {
+      await db.classes.delete(id);
+      console.log("App: Aula excluída do banco, atualizando estado local.");
+      setClasses(prev => prev.filter(c => String(c.id) !== String(id)));
+    } catch (err) {
+      console.error("App: Erro ao deletar aula:", err);
+      throw err;
+    }
+  };
+
   const renderContent = () => {
     if (isDataSyncing) {
       return (
@@ -152,7 +164,15 @@ const App: React.FC = () => {
       case 'financial':
         return <FinancialList payments={payments} students={students} onAddPayment={addPayment} />;
       case 'calendar':
-        return <CalendarView classes={classes} students={students} onAddClass={addClassSession} onUpdateClass={updateClassSession} />;
+        return (
+          <CalendarView 
+            classes={classes} 
+            students={students} 
+            onAddClass={addClassSession} 
+            onUpdateClass={updateClassSession} 
+            onDeleteClass={deleteClassSession}
+          />
+        );
       case 'academic':
         return <AcademicView students={students} />;
       case 'users':

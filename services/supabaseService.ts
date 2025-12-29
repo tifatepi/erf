@@ -144,7 +144,7 @@ export const db = {
       const { data, error } = await supabase.from('classes').select('*').order('date').order('time');
       if (error) throw error;
       return (data || []).map(c => ({
-        id: c.id,
+        id: String(c.id),
         subject: c.subject,
         teacherId: c.teacher_id,
         studentId: c.student_id,
@@ -168,7 +168,7 @@ export const db = {
       
       const c = data[0];
       return {
-        id: c.id,
+        id: String(c.id),
         subject: c.subject,
         teacherId: c.teacher_id,
         studentId: c.student_id,
@@ -191,7 +191,7 @@ export const db = {
       
       const c = data[0];
       return {
-        id: c.id,
+        id: String(c.id),
         subject: c.subject,
         teacherId: c.teacher_id,
         studentId: c.student_id,
@@ -201,9 +201,14 @@ export const db = {
         notes: c.notes
       } as ClassSession;
     },
-    async delete(id: string) {
+    async delete(id: string | number) {
+      console.log(`Tentando excluir aula com ID: ${id}`);
       const { error } = await supabase.from('classes').delete().eq('id', id);
-      if (error) throw error;
+      if (error) {
+        console.error("Erro na resposta do Supabase ao deletar:", error);
+        throw error;
+      }
+      return true;
     }
   }
 };
