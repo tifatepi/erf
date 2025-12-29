@@ -23,6 +23,7 @@ export const db = {
           avatar: data.avatar_url
         };
       } catch (e) {
+        console.error("Auth error:", e);
         return null;
       }
     }
@@ -212,11 +213,15 @@ export const db = {
       })) as Payment[];
     },
     async create(payment: Partial<Payment>) {
-      // Verificação de ID numérico para o banco de dados
-      const studentIdNum = parseInt(payment.studentId || '0');
-      
+      // Garantir que o ID do aluno seja tratado como número inteiro para o banco
+      const studentIdInt = payment.studentId ? parseInt(payment.studentId) : null;
+
+      if (!studentIdInt) {
+        throw new Error("ID do aluno inválido para criação de pagamento.");
+      }
+
       const payload = {
-        student_id: studentIdNum,
+        student_id: studentIdInt,
         amount: payment.amount,
         due_date: payment.dueDate,
         payment_date: payment.status === 'PAID' ? (payment.paymentDate || new Date().toISOString().split('T')[0]) : null,
@@ -224,13 +229,15 @@ export const db = {
         description: payment.description
       };
 
+      console.log("Tentando inserir pagamento:", payload);
+
       const { data, error } = await supabase
         .from('payments')
         .insert([payload])
         .select();
       
       if (error) {
-        console.error("Erro detalhado no Supabase:", error);
+        console.error("Erro Supabase (Insert Payment):", error);
         throw error;
       }
       
@@ -260,7 +267,10 @@ export const db = {
         .eq('id', id)
         .select();
       
-      if (error) throw error;
+      if (error) {
+        console.error("Erro Supabase (Update Payment):", error);
+        throw error;
+      }
       
       const p = data[0];
       return {
