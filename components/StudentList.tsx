@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Search, Plus, MessageSquareCode, X, Edit, Save } from 'lucide-react';
+import { Search, Plus, MessageSquareCode, X, Edit, Save, DollarSign } from 'lucide-react';
 import { getAcademicInsights } from '../services/geminiService';
 import { Student } from '../types';
 
@@ -23,12 +23,17 @@ const StudentList: React.FC<StudentListProps> = ({ students, onAddStudent, onUpd
     birthDate: '',
     grade: '',
     school: '',
+    monthlyFee: 0,
     subjects: [] as string[]
   });
 
   const filteredStudents = students.filter(s => 
     s.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const formatCurrency = (val?: number) => {
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val || 0);
+  };
 
   const calculateAge = (birthDate: string) => {
     if (!birthDate) return 'N/A';
@@ -53,7 +58,7 @@ const StudentList: React.FC<StudentListProps> = ({ students, onAddStudent, onUpd
 
   const openAddModal = () => {
     setEditingStudent(null);
-    setFormData({ name: '', birthDate: '', grade: '', school: '', subjects: [] });
+    setFormData({ name: '', birthDate: '', grade: '', school: '', monthlyFee: 0, subjects: [] });
     setIsModalOpen(true);
   };
 
@@ -64,6 +69,7 @@ const StudentList: React.FC<StudentListProps> = ({ students, onAddStudent, onUpd
       birthDate: student.birthDate || '',
       grade: student.grade,
       school: student.school,
+      monthlyFee: student.monthlyFee || 0,
       subjects: student.subjects || []
     });
     setIsModalOpen(true);
@@ -131,11 +137,12 @@ const StudentList: React.FC<StudentListProps> = ({ students, onAddStudent, onUpd
         </div>
 
         <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent">
-          <table className="w-full text-left min-w-[700px]">
+          <table className="w-full text-left min-w-[800px]">
             <thead>
               <tr className="bg-slate-50/50 text-slate-400 text-[10px] font-black uppercase tracking-[0.2em]">
                 <th className="px-6 md:px-8 py-5">Aluno / Idade</th>
                 <th className="px-6 md:px-8 py-5">Série / Escola</th>
+                <th className="px-6 md:px-8 py-5">Mensalidade</th>
                 <th className="px-6 md:px-8 py-5">Disciplinas</th>
                 <th className="px-6 md:px-8 py-5 text-center">Ações</th>
               </tr>
@@ -158,6 +165,9 @@ const StudentList: React.FC<StudentListProps> = ({ students, onAddStudent, onUpd
                     <td className="px-6 md:px-8 py-5">
                       <p className="text-sm font-black text-slate-700">{student.grade}</p>
                       <p className="text-xs font-bold text-slate-400 truncate max-w-[180px]">{student.school}</p>
+                    </td>
+                    <td className="px-6 md:px-8 py-5">
+                      <p className="text-sm font-black text-indigo-600">{formatCurrency(student.monthlyFee)}</p>
                     </td>
                     <td className="px-6 md:px-8 py-5">
                       <div className="flex flex-wrap gap-1.5">
@@ -191,7 +201,7 @@ const StudentList: React.FC<StudentListProps> = ({ students, onAddStudent, onUpd
                 ))
               ) : (
                 <tr>
-                  <td colSpan={4} className="py-20 text-center">
+                  <td colSpan={5} className="py-20 text-center">
                     <div className="flex flex-col items-center opacity-20">
                       <Search size={48} />
                       <p className="mt-4 font-black uppercase text-xs tracking-widest">Nenhum aluno encontrado</p>
@@ -224,6 +234,7 @@ const StudentList: React.FC<StudentListProps> = ({ students, onAddStudent, onUpd
                   onChange={e => setFormData({...formData, name: e.target.value})}
                 />
               </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-1.5">
                   <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Nascimento</label>
@@ -245,16 +256,33 @@ const StudentList: React.FC<StudentListProps> = ({ students, onAddStudent, onUpd
                   />
                 </div>
               </div>
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Escola</label>
-                <input 
-                  type="text"
-                  placeholder="Nome da instituição"
-                  className="w-full px-5 py-4 bg-slate-50 border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-                  value={formData.school}
-                  onChange={e => setFormData({...formData, school: e.target.value})}
-                />
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Escola</label>
+                  <input 
+                    type="text"
+                    placeholder="Nome da instituição"
+                    className="w-full px-5 py-4 bg-slate-50 border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                    value={formData.school}
+                    onChange={e => setFormData({...formData, school: e.target.value})}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Valor Mensalidade</label>
+                  <div className="relative">
+                    <DollarSign size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input 
+                      type="number" step="0.01" required
+                      placeholder="0,00"
+                      className="w-full pl-10 pr-5 py-4 bg-slate-50 border-none rounded-2xl text-sm font-black focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                      value={formData.monthlyFee || ''}
+                      onChange={e => setFormData({...formData, monthlyFee: parseFloat(e.target.value)})}
+                    />
+                  </div>
+                </div>
               </div>
+
               <div className="pt-4 flex flex-col sm:flex-row gap-4">
                 <button type="button" onClick={() => setIsModalOpen(false)} className="order-2 sm:order-1 flex-1 px-6 py-4 bg-slate-100 text-slate-600 rounded-2xl text-sm font-black hover:bg-slate-200 transition-all">Cancelar</button>
                 <button type="submit" disabled={isSubmitting} className="order-1 sm:order-2 flex-1 px-6 py-4 bg-indigo-600 text-white rounded-2xl text-sm font-black hover:bg-indigo-700 shadow-xl shadow-indigo-100 transition-all active:scale-95 disabled:opacity-50">

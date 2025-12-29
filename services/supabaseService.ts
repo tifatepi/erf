@@ -80,7 +80,8 @@ export const db = {
         grade: s.grade,
         school: s.school,
         subjects: s.subjects || [],
-        guardianId: s.guardian_id
+        guardianId: s.guardian_id,
+        monthlyFee: s.monthly_fee // Novo mapeamento
       })) as Student[];
     },
     async create(student: Partial<Student>) {
@@ -90,7 +91,8 @@ export const db = {
         grade: student.grade,
         school: student.school,
         subjects: student.subjects,
-        guardian_id: student.guardianId
+        guardian_id: student.guardianId,
+        monthly_fee: student.monthlyFee // Novo campo
       }]).select();
       if (error) {
         console.error("Erro Supabase (Student):", error);
@@ -99,7 +101,8 @@ export const db = {
       return { 
         ...data[0], 
         birthDate: data[0].birth_date,
-        guardianId: data[0].guardian_id
+        guardianId: data[0].guardian_id,
+        monthlyFee: data[0].monthly_fee
       } as Student;
     },
     async update(id: string, updates: Partial<Student>) {
@@ -108,13 +111,15 @@ export const db = {
         birth_date: updates.birthDate,
         grade: updates.grade,
         school: updates.school,
-        subjects: updates.subjects
+        subjects: updates.subjects,
+        monthly_fee: updates.monthlyFee // Novo campo
       }).eq('id', id).select();
       if (error) throw error;
       return { 
         ...data[0], 
         birthDate: data[0].birth_date,
-        guardianId: data[0].guardian_id
+        guardianId: data[0].guardian_id,
+        monthlyFee: data[0].monthly_fee
       } as Student;
     },
     async delete(id: string) {
@@ -137,7 +142,6 @@ export const db = {
       })) as Payment[];
     },
     async create(payment: Partial<Payment>) {
-      console.log("Tentando criar pagamento:", payment);
       const { data, error } = await supabase.from('payments').insert([{
         student_id: payment.studentId,
         amount: payment.amount,

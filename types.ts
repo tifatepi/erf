@@ -22,6 +22,7 @@ export interface Student {
   school: string;
   guardianId: string;
   subjects: string[];
+  monthlyFee?: number; // Novo campo para valor da mensalidade
 }
 
 export interface Payment {
@@ -29,7 +30,7 @@ export interface Payment {
   studentId: string;
   amount: number;
   dueDate: string;
-  paymentDate?: string; // Campo opcional para quando a receita é lançada
+  paymentDate?: string; 
   status: 'PAID' | 'PENDING' | 'OVERDUE';
   description: string;
 }
