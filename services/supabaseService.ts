@@ -213,11 +213,13 @@ export const db = {
       })) as Payment[];
     },
     async create(payment: Partial<Payment>) {
-      // Garantir que o ID do aluno seja tratado como número inteiro para o banco
-      const studentIdInt = payment.studentId ? parseInt(payment.studentId) : null;
+      // Validação robusta do studentId (aceita string ou number)
+      const rawId = payment.studentId;
+      const studentIdInt = rawId ? parseInt(String(rawId), 10) : NaN;
 
-      if (!studentIdInt) {
-        throw new Error("ID do aluno inválido para criação de pagamento.");
+      if (isNaN(studentIdInt)) {
+        console.error("ID do aluno recebido é inválido:", rawId);
+        throw new Error("Não foi possível identificar o aluno para registrar o pagamento.");
       }
 
       const payload = {
@@ -229,7 +231,7 @@ export const db = {
         description: payment.description
       };
 
-      console.log("Tentando inserir pagamento:", payload);
+      console.log("Enviando payload para Supabase:", payload);
 
       const { data, error } = await supabase
         .from('payments')
