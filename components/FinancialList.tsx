@@ -51,7 +51,7 @@ const FinancialList: React.FC<FinancialListProps> = ({ payments, students, onAdd
         studentId: newPay.studentId,
         amount: newPay.amount,
         dueDate: newPay.dueDate,
-        paymentDate: newPay.date, // Enviando a data do pagamento corretamente
+        paymentDate: newPay.date,
         description: `Mensalidade ${newPay.description}`,
         status: newPay.status
       });
@@ -77,8 +77,8 @@ const FinancialList: React.FC<FinancialListProps> = ({ payments, students, onAdd
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-black text-slate-900 tracking-tight">Fluxo Financeiro</h2>
-          <p className="text-slate-500 font-medium">Controle de recebimentos e mensalidades escolares.</p>
+          <h2 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">Fluxo Financeiro</h2>
+          <p className="text-slate-500 font-medium text-sm">Controle de recebimentos e mensalidades.</p>
         </div>
         <button 
           onClick={() => setIsModalOpen(true)}
@@ -89,13 +89,13 @@ const FinancialList: React.FC<FinancialListProps> = ({ payments, students, onAdd
         </button>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
         <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
           <div className="bg-emerald-500/10 w-12 h-12 rounded-2xl flex items-center justify-center text-emerald-600 mb-4">
             <DollarSign size={24} />
           </div>
-          <p className="text-slate-400 text-xs font-black uppercase tracking-widest">Receita Total</p>
-          <h3 className="text-2xl font-black text-slate-900 mt-1">
+          <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest">Receita Total</p>
+          <h3 className="text-xl md:text-2xl font-black text-slate-900 mt-1">
             {formatCurrency(payments.filter(p => p.status === 'PAID').reduce((acc, p) => acc + p.amount, 0))}
           </h3>
         </div>
@@ -103,27 +103,27 @@ const FinancialList: React.FC<FinancialListProps> = ({ payments, students, onAdd
           <div className="bg-amber-500/10 w-12 h-12 rounded-2xl flex items-center justify-center text-amber-600 mb-4">
             <Clock size={24} />
           </div>
-          <p className="text-slate-400 text-xs font-black uppercase tracking-widest">A Receber</p>
-          <h3 className="text-2xl font-black text-slate-900 mt-1">
+          <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest">A Receber</p>
+          <h3 className="text-xl md:text-2xl font-black text-slate-900 mt-1">
             {formatCurrency(payments.filter(p => p.status !== 'PAID').reduce((acc, p) => acc + p.amount, 0))}
           </h3>
         </div>
-        <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
+        <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 hidden sm:block">
           <div className="bg-indigo-500/10 w-12 h-12 rounded-2xl flex items-center justify-center text-indigo-600 mb-4">
             <Info size={24} />
           </div>
-          <p className="text-slate-400 text-xs font-black uppercase tracking-widest">Total de Lançamentos</p>
-          <h3 className="text-2xl font-black text-slate-900 mt-1">{payments.length}</h3>
+          <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest">Total Registros</p>
+          <h3 className="text-xl md:text-2xl font-black text-slate-900 mt-1">{payments.length}</h3>
         </div>
       </div>
 
-      <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
-        <div className="p-6 border-b border-slate-50">
-          <div className="relative max-w-md">
+      <div className="bg-white rounded-[1.5rem] md:rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
+        <div className="p-4 md:p-6 border-b border-slate-50">
+          <div className="relative max-w-md w-full">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
             <input 
               type="text" 
-              placeholder="Buscar por aluno ou referência..." 
+              placeholder="Buscar por aluno ou mês..." 
               className="w-full pl-12 pr-6 py-3 bg-slate-50 border-none rounded-2xl text-sm font-medium focus:ring-2 focus:ring-emerald-500 outline-none"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -132,14 +132,14 @@ const FinancialList: React.FC<FinancialListProps> = ({ payments, students, onAdd
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left">
+          <table className="w-full text-left min-w-[650px]">
             <thead>
               <tr className="bg-slate-50/50 text-slate-400 text-[10px] font-black uppercase tracking-[0.15em]">
-                <th className="px-8 py-5">Aluno</th>
-                <th className="px-8 py-5">Referência / Descrição</th>
-                <th className="px-8 py-5">Valor</th>
-                <th className="px-8 py-5">Vencimento</th>
-                <th className="px-8 py-5 text-center">Status</th>
+                <th className="px-6 md:px-8 py-5">Aluno</th>
+                <th className="px-6 md:px-8 py-5">Referência</th>
+                <th className="px-6 md:px-8 py-5 text-right">Valor</th>
+                <th className="px-6 md:px-8 py-5">Vencimento</th>
+                <th className="px-6 md:px-8 py-5 text-center">Status</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50 text-sm">
@@ -147,24 +147,24 @@ const FinancialList: React.FC<FinancialListProps> = ({ payments, students, onAdd
                 const style = statusStyles[payment.status] || statusStyles.PENDING;
                 return (
                   <tr key={payment.id || idx} className="hover:bg-slate-50/80 transition-all group">
-                    <td className="px-8 py-5">
-                      <p className="font-bold text-slate-900">{getStudentName(payment.studentId)}</p>
+                    <td className="px-6 md:px-8 py-5">
+                      <p className="font-bold text-slate-900 truncate max-w-[150px]">{getStudentName(payment.studentId)}</p>
                     </td>
-                    <td className="px-8 py-5">
-                      <p className="font-medium text-slate-500">{payment.description}</p>
+                    <td className="px-6 md:px-8 py-5">
+                      <p className="font-medium text-slate-500 truncate">{payment.description}</p>
                     </td>
-                    <td className="px-8 py-5">
-                      <p className="font-black text-slate-900">{formatCurrency(payment.amount)}</p>
+                    <td className="px-6 md:px-8 py-5 text-right">
+                      <p className="font-black text-slate-900 whitespace-nowrap">{formatCurrency(payment.amount)}</p>
                     </td>
-                    <td className="px-8 py-5">
-                      <div className="flex items-center gap-2 text-slate-500 font-medium">
-                        <CalendarIcon size={14} className="opacity-40" />
+                    <td className="px-6 md:px-8 py-5">
+                      <div className="flex items-center gap-2 text-slate-500 font-medium whitespace-nowrap">
+                        <CalendarIcon size={14} className="opacity-40 shrink-0" />
                         {new Date(payment.dueDate).toLocaleDateString('pt-BR')}
                       </div>
                     </td>
-                    <td className="px-8 py-5">
+                    <td className="px-6 md:px-8 py-5">
                       <div className="flex justify-center">
-                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full font-black text-[9px] uppercase border ${style.bg} ${style.text}`}>
+                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full font-black text-[9px] uppercase border whitespace-nowrap ${style.bg} ${style.text}`}>
                           {style.icon}
                           {style.label}
                         </span>
@@ -186,19 +186,19 @@ const FinancialList: React.FC<FinancialListProps> = ({ payments, students, onAdd
       </div>
 
       {isModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-md p-4 animate-fade-in">
-          <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-lg overflow-hidden border border-white/20">
-            <div className="p-8 border-b border-slate-50 flex items-center justify-between bg-emerald-600 text-white">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-md p-2 md:p-4 animate-fade-in">
+          <div className="bg-white rounded-3xl md:rounded-[2.5rem] shadow-2xl w-full max-w-lg max-h-[95vh] overflow-y-auto border border-white/20">
+            <div className="p-6 md:p-8 border-b border-slate-50 flex items-center justify-between bg-emerald-600 text-white sticky top-0 z-10">
               <div>
-                <h3 className="font-black text-2xl tracking-tight">Novo Lançamento</h3>
-                <p className="text-emerald-100 text-xs font-bold uppercase tracking-widest mt-1">Registrar entrada financeira</p>
+                <h3 className="font-black text-xl md:text-2xl tracking-tight">Nova Receita</h3>
+                <p className="text-emerald-100 text-[10px] font-bold uppercase tracking-widest mt-1">Lançamento financeiro</p>
               </div>
               <button onClick={() => setIsModalOpen(false)} className="hover:bg-white/10 p-2 rounded-2xl transition-all">
                 <X size={24} />
               </button>
             </div>
             
-            <form onSubmit={handleSave} className="p-8 space-y-5">
+            <form onSubmit={handleSave} className="p-6 md:p-8 space-y-4">
               <div className="space-y-1">
                 <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Aluno</label>
                 <select 
@@ -212,7 +212,7 @@ const FinancialList: React.FC<FinancialListProps> = ({ payments, students, onAdd
                 </select>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Referente ao Mês</label>
                   <select 
@@ -238,9 +238,9 @@ const FinancialList: React.FC<FinancialListProps> = ({ payments, students, onAdd
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Data do Pagamento</label>
+                  <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Data Pagamento</label>
                   <input 
                     type="date" required
                     className="w-full px-5 py-3.5 bg-slate-50 border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
@@ -260,16 +260,16 @@ const FinancialList: React.FC<FinancialListProps> = ({ payments, students, onAdd
               </div>
 
               <div className="space-y-1">
-                <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Status do Lançamento</label>
+                <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Status</label>
                 <div className="grid grid-cols-3 gap-2">
                   {(['PAID', 'PENDING', 'OVERDUE'] as const).map((s) => (
                     <button
                       key={s}
                       type="button"
                       onClick={() => setNewPay({...newPay, status: s})}
-                      className={`py-2.5 rounded-xl text-[10px] font-black uppercase transition-all border ${
+                      className={`py-3 rounded-xl text-[9px] font-black uppercase transition-all border ${
                         newPay.status === s 
-                        ? 'bg-emerald-600 border-emerald-600 text-white shadow-lg shadow-emerald-100' 
+                        ? 'bg-emerald-600 border-emerald-600 text-white shadow-lg' 
                         : 'bg-white border-slate-100 text-slate-400 hover:border-emerald-200'
                       }`}
                     >
@@ -279,18 +279,18 @@ const FinancialList: React.FC<FinancialListProps> = ({ payments, students, onAdd
                 </div>
               </div>
 
-              <div className="pt-6 flex gap-4">
+              <div className="pt-6 flex flex-col md:flex-row gap-3">
                 <button 
                   type="button" 
                   onClick={() => setIsModalOpen(false)}
-                  className="flex-1 px-6 py-4 bg-slate-100 text-slate-600 rounded-2xl text-sm font-black hover:bg-slate-200 transition-all"
+                  className="order-2 md:order-1 flex-1 px-6 py-4 bg-slate-100 text-slate-600 rounded-2xl text-sm font-black hover:bg-slate-200 transition-all"
                 >
                   Cancelar
                 </button>
                 <button 
                   type="submit"
                   disabled={isSubmitting}
-                  className="flex-1 px-6 py-4 bg-emerald-600 text-white rounded-2xl text-sm font-black hover:bg-emerald-700 shadow-xl shadow-emerald-100 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="order-1 md:order-2 flex-1 px-6 py-4 bg-emerald-600 text-white rounded-2xl text-sm font-black hover:bg-emerald-700 shadow-xl shadow-emerald-100 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   {isSubmitting ? (
                     <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>

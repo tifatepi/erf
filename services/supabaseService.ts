@@ -49,7 +49,6 @@ export const db = {
     },
     async create(profile: Partial<User & { password?: string }>) {
       const { data, error } = await supabase.from('profiles').insert([{
-        id: generateId(),
         name: profile.name,
         email: profile.email,
         role: profile.role,
@@ -93,7 +92,10 @@ export const db = {
         subjects: student.subjects,
         guardian_id: student.guardianId
       }]).select();
-      if (error) throw error;
+      if (error) {
+        console.error("Erro Supabase (Student):", error);
+        throw error;
+      }
       return { 
         ...data[0], 
         birthDate: data[0].birth_date,
@@ -135,6 +137,7 @@ export const db = {
       })) as Payment[];
     },
     async create(payment: Partial<Payment>) {
+      console.log("Tentando criar pagamento:", payment);
       const { data, error } = await supabase.from('payments').insert([{
         student_id: payment.studentId,
         amount: payment.amount,
@@ -143,7 +146,12 @@ export const db = {
         status: payment.status,
         description: payment.description
       }]).select();
-      if (error) throw error;
+      
+      if (error) {
+        console.error("Erro detalhado do Supabase (Payment):", error);
+        throw error;
+      }
+      
       const p = data[0];
       return {
         id: String(p.id),
@@ -181,7 +189,10 @@ export const db = {
         status: classData.status,
         notes: classData.notes
       }]).select();
-      if (error) throw error;
+      if (error) {
+        console.error("Erro Supabase (Class):", error);
+        throw error;
+      }
       
       const c = data[0];
       return {
