@@ -117,33 +117,29 @@ const FinancialList: React.FC<FinancialListProps> = ({ payments, students, onAdd
   };
 
   const downloadPDF = () => {
-    if (!receiptRef.current) {
-      alert("Erro interno: Referência do recibo não encontrada.");
-      return;
-    }
+    if (!receiptRef.current) return;
 
     const html2pdf = (window as any).html2pdf;
     if (!html2pdf) {
-      alert("Erro: A biblioteca de geração de PDF ainda não foi carregada. Por favor, aguarde alguns segundos e tente novamente.");
+      alert("Biblioteca de PDF não carregada.");
       return;
     }
 
     setIsGeneratingPDF(true);
     
-    // Clonamos as opções para garantir estabilidade
     const element = receiptRef.current;
     const studentName = getStudentName(selectedPayment?.studentId || '');
-    const fileName = `recibo-${studentName.toLowerCase().replace(/\s+/g, '-')}-${today}.pdf`;
+    const fileName = `recibo-${studentName.toLowerCase().replace(/\s+/g, '-')}.pdf`;
 
     const opt = {
-      margin: [10, 10, 10, 10],
+      margin: [15, 15, 15, 15],
       filename: fileName,
       image: { type: 'jpeg', quality: 0.98 },
       html2canvas: { 
         scale: 2, 
         useCORS: true, 
         letterRendering: true,
-        logging: false 
+        backgroundColor: '#ffffff'
       },
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
@@ -152,12 +148,9 @@ const FinancialList: React.FC<FinancialListProps> = ({ payments, students, onAdd
       .from(element)
       .set(opt)
       .save()
-      .then(() => {
-        console.log("PDF gerado com sucesso");
-      })
       .catch((err: any) => {
-        console.error("Erro ao gerar PDF:", err);
-        alert("Ocorreu um erro ao gerar o arquivo PDF. Tente novamente.");
+        console.error("PDF Error:", err);
+        alert("Erro ao gerar PDF. Verifique o console.");
       })
       .finally(() => {
         setIsGeneratingPDF(false);
@@ -390,10 +383,10 @@ const FinancialList: React.FC<FinancialListProps> = ({ payments, students, onAdd
             </div>
 
             <div className="p-4 md:p-8 bg-slate-100 flex justify-center">
-              {/* Recibo Interno - Alvo do html2pdf */}
+              {/* Recibo Interno - Alvo do html2pdf - CORES HEXADECIMAIS FIXAS PARA COMPATIBILIDADE */}
               <div 
                 ref={receiptRef}
-                className="bg-white p-12 shadow-sm border border-slate-200 font-serif text-slate-800"
+                className="bg-white p-12 shadow-sm font-serif"
                 style={{ 
                   width: '210mm', 
                   minHeight: '297mm',
@@ -401,41 +394,41 @@ const FinancialList: React.FC<FinancialListProps> = ({ payments, students, onAdd
                   color: '#1e293b'
                 }}
               >
-                <div className="flex justify-between items-start border-b-2 border-slate-800 pb-8 mb-8">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '2px solid #1e293b', paddingBottom: '32px', marginBottom: '32px' }}>
                   <div>
-                    <h2 className="text-4xl font-black italic text-indigo-600 tracking-tighter" style={{ color: '#4f46e5' }}>EduBoost</h2>
-                    <p className="text-[12px] font-bold uppercase text-slate-500 mt-1">Escola de Reforço Escolar</p>
+                    <h2 style={{ fontSize: '36px', fontWeight: '900', fontStyle: 'italic', color: '#4f46e5', margin: '0', letterSpacing: '-0.05em' }}>EduBoost</h2>
+                    <p style={{ fontSize: '12px', fontWeight: '700', textTransform: 'uppercase', color: '#64748b', marginTop: '4px', margin: '0' }}>Escola de Reforço Escolar</p>
                   </div>
-                  <div className="text-right">
-                    <p className="text-xl font-black">RECIBO Nº {selectedPayment.id.slice(0, 8).toUpperCase()}</p>
-                    <p className="text-2xl font-black text-indigo-600" style={{ color: '#4f46e5' }}>{formatCurrency(selectedPayment.amount)}</p>
+                  <div style={{ textAlign: 'right' }}>
+                    <p style={{ fontSize: '20px', fontWeight: '900', margin: '0' }}>RECIBO Nº {selectedPayment.id.slice(0, 8).toUpperCase()}</p>
+                    <p style={{ fontSize: '24px', fontWeight: '900', color: '#4f46e5', margin: '0' }}>{formatCurrency(selectedPayment.amount)}</p>
                   </div>
                 </div>
 
-                <div className="space-y-12 text-lg leading-relaxed mt-20">
-                  <p>
-                    Recebemos de <span className="font-bold border-b border-slate-400 px-2">{getStudentName(selectedPayment.studentId)}</span>, 
-                    a quantia de <span className="font-bold border-b border-slate-400 px-2">{formatCurrency(selectedPayment.amount)}</span> 
-                    referente a <span className="font-bold border-b border-slate-400 px-2">{selectedPayment.description}</span>.
+                <div style={{ marginTop: '80px', fontSize: '18px', lineHeight: '1.6' }}>
+                  <p style={{ margin: '0' }}>
+                    Recebemos de <span style={{ fontWeight: '700', borderBottom: '1px solid #94a3b8', padding: '0 8px' }}>{getStudentName(selectedPayment.studentId)}</span>, 
+                    a quantia de <span style={{ fontWeight: '700', borderBottom: '1px solid #94a3b8', padding: '0 8px' }}>{formatCurrency(selectedPayment.amount)}</span> 
+                    referente a <span style={{ fontWeight: '700', borderBottom: '1px solid #94a3b8', padding: '0 8px' }}>{selectedPayment.description}</span>.
                   </p>
 
-                  <div className="grid grid-cols-2 gap-12 mt-20">
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '48px', marginTop: '80px' }}>
                     <div>
-                      <p className="text-[12px] font-bold uppercase text-slate-400 mb-2">Data do Pagamento</p>
-                      <p className="font-bold border-b border-slate-200 pb-2 text-xl">
+                      <p style={{ fontSize: '12px', fontWeight: '700', textTransform: 'uppercase', color: '#94a3b8', marginBottom: '8px', margin: '0' }}>Data do Pagamento</p>
+                      <p style={{ fontWeight: '700', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px', fontSize: '20px', margin: '0' }}>
                         {selectedPayment.paymentDate ? new Date(selectedPayment.paymentDate + 'T12:00:00').toLocaleDateString('pt-BR', { dateStyle: 'long' }) : '---'}
                       </p>
                     </div>
                     <div>
-                      <p className="text-[12px] font-bold uppercase text-slate-400 mb-2">Local</p>
-                      <p className="font-bold border-b border-slate-200 pb-2 text-xl">Brasil</p>
+                      <p style={{ fontSize: '12px', fontWeight: '700', textTransform: 'uppercase', color: '#94a3b8', marginBottom: '8px', margin: '0' }}>Local</p>
+                      <p style={{ fontWeight: '700', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px', fontSize: '20px', margin: '0' }}>Brasil</p>
                     </div>
                   </div>
 
-                  <div className="mt-40 pt-12 border-t border-slate-200 flex flex-col items-center">
-                    <div className="w-80 border-b-2 border-slate-800 mb-3"></div>
-                    <p className="text-base font-black uppercase tracking-widest text-slate-800">Assinatura da Coordenação</p>
-                    <p className="text-xs text-slate-400 mt-2">EduBoost Reforço Escolar • Gestão de Ensino</p>
+                  <div style={{ marginTop: '160px', paddingTop: '48px', borderTop: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <div style={{ width: '320px', borderBottom: '2px solid #1e293b', marginBottom: '12px' }}></div>
+                    <p style={{ fontSize: '16px', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '0.1em', color: '#1e293b', margin: '0' }}>Assinatura da Coordenação</p>
+                    <p style={{ fontSize: '12px', color: '#94a3b8', marginTop: '8px', margin: '0' }}>EduBoost Reforço Escolar • Gestão de Ensino</p>
                   </div>
                 </div>
               </div>
