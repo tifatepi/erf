@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Payment, Student } from '../types';
 import { 
   CheckCircle2, 
@@ -16,7 +16,8 @@ import {
   Share2,
   Loader2,
   HandCoins,
-  RotateCcw
+  RotateCcw,
+  Download
 } from 'lucide-react';
 
 interface FinancialListProps {
@@ -35,6 +36,7 @@ const FinancialList: React.FC<FinancialListProps> = ({ payments, students, onAdd
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const receiptRef = useRef<HTMLDivElement>(null);
   
   const today = new Date().toISOString().split('T')[0];
   
@@ -52,7 +54,8 @@ const FinancialList: React.FC<FinancialListProps> = ({ payments, students, onAdd
     'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
   ];
 
-  const getStudentName = (id: string) => students.find(s => String(s.id) === String(id))?.name || 'Desconhecido';
+  const getStudent = (id: string) => students.find(s => String(s.id) === String(id));
+  const getStudentName = (id: string) => getStudent(id)?.name || 'Desconhecido';
 
   const statusStyles = {
     PAID: { bg: 'bg-emerald-50', text: 'text-emerald-700', icon: <CheckCircle2 size={12} />, label: 'Pago' },
@@ -113,6 +116,24 @@ const FinancialList: React.FC<FinancialListProps> = ({ payments, students, onAdd
   const handleOpenReceipt = (payment: Payment) => {
     setSelectedPayment(payment);
     setIsReceiptOpen(true);
+  };
+
+  const downloadPDF = () => {
+    if (!receiptRef.current) return;
+    setIsGeneratingPDF(true);
+    
+    const element = receiptRef.current;
+    const opt = {
+      margin: 10,
+      filename: `recibo-${getStudentName(selectedPayment?.studentId || '')}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+
+    html2pdf().from(element).set(opt).save().finally(() => {
+      setIsGeneratingPDF(false);
+    });
   };
 
   const filteredPayments = payments.filter(p => 
@@ -226,15 +247,15 @@ const FinancialList: React.FC<FinancialListProps> = ({ payments, students, onAdd
       {/* Modal Lançamento */}
       {isModalOpen && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-900/40 backdrop-blur-md p-4 animate-fade-in">
-          <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-lg border border-white/20">
-            <div className="p-8 border-b border-slate-50 flex items-center justify-between bg-indigo-600 text-white rounded-t-[2.5rem]">
+          <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-lg border border-white/20 overflow-hidden">
+            <div className="p-8 border-b border-slate-50 flex items-center justify-between bg-indigo-600 text-white">
               <h3 className="font-black text-2xl tracking-tight">Novo Lançamento</h3>
               <button onClick={() => setIsModalOpen(false)} className="hover:bg-white/10 p-2 rounded-2xl transition-all">
                 <X size={24} />
               </button>
             </div>
             
-            <form onSubmit={handleSave} className="p-8 space-y-5">
+            <form onSubmit={handleSave} className="p-8 space-y-5 max-h-[70vh] overflow-y-auto custom-scrollbar">
               <div className="space-y-1">
                 <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Aluno</label>
                 <select 
@@ -298,7 +319,6 @@ const FinancialList: React.FC<FinancialListProps> = ({ payments, students, onAdd
                   <label className={`text-[11px] font-black uppercase tracking-widest ml-1 ${newPay.status === 'PAID' ? 'text-slate-400' : 'text-slate-200'}`}>Data Pagamento</label>
                   <input 
                     type="date" 
-                    // Regra de Negócio: Campo habilitado apenas se status for 'PAID'
                     disabled={newPay.status !== 'PAID'}
                     className={`w-full px-5 py-4 border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none transition-all ${newPay.status === 'PAID' ? 'bg-slate-50' : 'bg-slate-100 cursor-not-allowed opacity-40'}`}
                     value={newPay.status === 'PAID' ? newPay.date : ''}
@@ -317,12 +337,96 @@ const FinancialList: React.FC<FinancialListProps> = ({ payments, students, onAdd
               </div>
 
               <div className="pt-6 flex gap-3">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 px-6 py-4 bg-slate-100 text-slate-600 rounded-2xl text-sm font-black hover:bg-slate-200">Cancelar</button>
-                <button type="submit" disabled={isSubmitting} className="flex-1 px-6 py-4 bg-indigo-600 text-white rounded-2xl text-sm font-black hover:bg-indigo-700 shadow-xl shadow-indigo-100">
+                <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 px-6 py-4 bg-slate-100 text-slate-600 rounded-2xl text-sm font-black hover:bg-slate-200 transition-all">Cancelar</button>
+                <button type="submit" disabled={isSubmitting} className="flex-1 px-6 py-4 bg-indigo-600 text-white rounded-2xl text-sm font-black hover:bg-indigo-700 shadow-xl shadow-indigo-100 transition-all">
                   {isSubmitting ? 'Salvando...' : 'Lançar'}
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Recibo */}
+      {isReceiptOpen && selectedPayment && (
+        <div className="fixed inset-0 z-[130] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 animate-fade-in">
+          <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-2xl overflow-hidden border border-white/20">
+            <div className="p-6 md:p-8 border-b border-slate-50 flex items-center justify-between bg-slate-900 text-white">
+              <div>
+                <h3 className="font-black text-xl tracking-tight">Visualização do Recibo</h3>
+                <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mt-1">Recibo de Pagamento de Serviço</p>
+              </div>
+              <button onClick={() => setIsReceiptOpen(false)} className="hover:bg-white/10 p-2 rounded-2xl transition-all">
+                <X size={24} />
+              </button>
+            </div>
+
+            <div className="p-4 md:p-8 overflow-y-auto max-h-[60vh] custom-scrollbar bg-slate-100">
+              <div 
+                ref={receiptRef}
+                className="bg-white p-8 md:p-12 shadow-sm rounded-lg border border-slate-200 mx-auto max-w-full font-serif text-slate-800"
+                style={{ width: '210mm', minHeight: '148mm' }}
+              >
+                <div className="flex justify-between items-start border-b-2 border-slate-800 pb-8 mb-8">
+                  <div>
+                    <h2 className="text-3xl font-black italic text-indigo-600 tracking-tighter">EduBoost</h2>
+                    <p className="text-[10px] font-bold uppercase text-slate-500 mt-1">Escola de Reforço Escolar</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-lg font-black">RECIBO Nº {selectedPayment.id.slice(0, 8).toUpperCase()}</p>
+                    <p className="text-xl font-black text-indigo-600">{formatCurrency(selectedPayment.amount)}</p>
+                  </div>
+                </div>
+
+                <div className="space-y-6 text-base leading-relaxed">
+                  <p>
+                    Recebemos de <span className="font-bold border-b border-slate-400 px-2">{getStudentName(selectedPayment.studentId)}</span>, 
+                    a quantia de <span className="font-bold border-b border-slate-400 px-2">{formatCurrency(selectedPayment.amount)}</span> 
+                    referente a <span className="font-bold border-b border-slate-400 px-2">{selectedPayment.description}</span>.
+                  </p>
+
+                  <div className="grid grid-cols-2 gap-8 mt-12">
+                    <div>
+                      <p className="text-[10px] font-bold uppercase text-slate-400 mb-1">Data do Pagamento</p>
+                      <p className="font-bold border-b border-slate-200 pb-2">
+                        {selectedPayment.paymentDate ? new Date(selectedPayment.paymentDate + 'T12:00:00').toLocaleDateString('pt-BR', { dateStyle: 'long' }) : '---'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold uppercase text-slate-400 mb-1">Local</p>
+                      <p className="font-bold border-b border-slate-200 pb-2">Cidade do Aluno, Brasil</p>
+                    </div>
+                  </div>
+
+                  <div className="mt-20 pt-8 border-t border-slate-200 flex flex-col items-center">
+                    <div className="w-64 border-b-2 border-slate-800 mb-2"></div>
+                    <p className="text-sm font-black uppercase tracking-widest text-slate-800">Assinatura da Coordenação</p>
+                    <p className="text-[10px] text-slate-400 mt-1">EduBoost Reforço Escolar - CNPJ: 00.000.000/0001-00</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 md:p-8 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row gap-3">
+              <button 
+                onClick={() => setIsReceiptOpen(false)} 
+                className="flex-1 px-6 py-4 bg-white border border-slate-200 text-slate-600 rounded-2xl text-sm font-black hover:bg-slate-100 transition-all"
+              >
+                Fechar
+              </button>
+              <button 
+                onClick={downloadPDF}
+                disabled={isGeneratingPDF}
+                className="flex-1 px-6 py-4 bg-indigo-600 text-white rounded-2xl text-sm font-black hover:bg-indigo-700 shadow-xl shadow-indigo-100 flex items-center justify-center gap-2 transition-all active:scale-95"
+              >
+                {isGeneratingPDF ? (
+                  <Loader2 className="animate-spin" size={20} />
+                ) : (
+                  <Download size={20} />
+                )}
+                {isGeneratingPDF ? 'Gerando...' : 'Baixar Recibo PDF'}
+              </button>
+            </div>
           </div>
         </div>
       )}
