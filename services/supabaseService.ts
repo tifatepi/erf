@@ -39,7 +39,6 @@ export const db = {
         avatar: p.avatar_url
       })) as User[];
     },
-    // Fix: Added create method for profiles used in UserManagement
     async create(profile: any) {
       const { data, error } = await supabase.from('profiles').insert([{
         name: profile.name,
@@ -58,7 +57,6 @@ export const db = {
         avatar: p.avatar_url
       } as User;
     },
-    // Fix: Added delete method for profiles used in UserManagement
     async delete(id: string) {
       const { error } = await supabase.from('profiles').delete().eq('id', id);
       if (error) throw error;
@@ -87,7 +85,6 @@ export const db = {
       const i = data[0];
       return { id: String(i.id), name: i.name, cnpj: i.cnpj, contactName: i.contact_name, contactPhone: i.contact_phone } as Institution;
     },
-    // Fix: Added update method for institutions used in App
     async update(id: string, inst: Partial<Institution>) {
       const { data, error } = await supabase.from('institutions').update({
         name: inst.name,
@@ -99,13 +96,11 @@ export const db = {
       const i = data[0];
       return { id: String(i.id), name: i.name, cnpj: i.cnpj, contactName: i.contact_name, contactPhone: i.contact_phone } as Institution;
     },
-    // Fix: Added delete method for institutions used in App
     async delete(id: string) {
       const { error } = await supabase.from('institutions').delete().eq('id', id);
       if (error) throw error;
     }
   },
-  // Fix: Added teachers domain used in App
   teachers: {
     async list() {
       const { data, error } = await supabase.from('teachers').select('*').order('name');
@@ -180,7 +175,6 @@ export const db = {
         monthlyFee: Number(s.monthly_fee || 0)
       } as Student;
     },
-    // Fix: Added update method for students used in App
     async update(id: string, student: Partial<Student>) {
       const { data, error } = await supabase.from('students').update({
         name: student.name,
@@ -218,16 +212,27 @@ export const db = {
       })) as Payment[];
     },
     async create(payment: Partial<Payment>) {
-      const { data, error } = await supabase.from('payments').insert([{
-        student_id: parseInt(payment.studentId || '0'),
+      // Verificação de ID numérico para o banco de dados
+      const studentIdNum = parseInt(payment.studentId || '0');
+      
+      const payload = {
+        student_id: studentIdNum,
         amount: payment.amount,
         due_date: payment.dueDate,
-        payment_date: (payment.status === 'PAID' && payment.paymentDate) ? payment.paymentDate : null,
+        payment_date: payment.status === 'PAID' ? (payment.paymentDate || new Date().toISOString().split('T')[0]) : null,
         status: payment.status,
         description: payment.description
-      }]).select();
+      };
+
+      const { data, error } = await supabase
+        .from('payments')
+        .insert([payload])
+        .select();
       
-      if (error) throw error;
+      if (error) {
+        console.error("Erro detalhado no Supabase:", error);
+        throw error;
+      }
       
       const p = data[0];
       return {
@@ -241,13 +246,19 @@ export const db = {
       } as Payment;
     },
     async update(id: string, updates: Partial<Payment>) {
-      const { data, error } = await supabase.from('payments').update({
+      const payload: any = {
         status: updates.status,
-        payment_date: updates.status === 'PAID' ? (updates.paymentDate || new Date().toISOString().split('T')[0]) : null,
         amount: updates.amount,
         description: updates.description,
-        due_date: updates.dueDate
-      }).eq('id', id).select();
+        due_date: updates.dueDate,
+        payment_date: updates.status === 'PAID' ? (updates.paymentDate || new Date().toISOString().split('T')[0]) : null
+      };
+
+      const { data, error } = await supabase
+        .from('payments')
+        .update(payload)
+        .eq('id', id)
+        .select();
       
       if (error) throw error;
       
@@ -278,7 +289,6 @@ export const db = {
         notes: c.notes
       })) as ClassSession[];
     },
-    // Fix: Added create method for classes used in App
     async create(session: Partial<ClassSession>) {
       const { data, error } = await supabase.from('classes').insert([{
         subject: session.subject,
@@ -302,7 +312,6 @@ export const db = {
         notes: c.notes
       } as ClassSession;
     },
-    // Fix: Added update method for classes used in App
     async update(id: string, session: Partial<ClassSession>) {
       const { data, error } = await supabase.from('classes').update({
         subject: session.subject,
@@ -324,7 +333,6 @@ export const db = {
         notes: c.notes
       } as ClassSession;
     },
-    // Fix: Added delete method for classes used in App
     async delete(id: string) {
       const { error } = await supabase.from('classes').delete().eq('id', id);
       if (error) throw error;
