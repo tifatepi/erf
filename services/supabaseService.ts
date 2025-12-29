@@ -2,32 +2,45 @@
 import { supabase } from '../lib/supabase';
 import { Student, Payment, ClassSession, User, UserRole } from '../types';
 
+// Helper para gerar IDs caso o crypto.randomUUID não esteja disponível
+const generateId = () => {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  return Math.random().toString(36).substring(2) + Date.now().toString(36);
+};
+
 export const db = {
   auth: {
     async login(email: string, password: string): Promise<User | null> {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('email', email)
-        .eq('password', password)
-        .maybeSingle();
-      
-      if (error || !data) return null;
-      
-      return {
-        id: data.id,
-        name: data.name,
-        email: data.email,
-        role: data.role as UserRole,
-        avatar: data.avatar_url
-      };
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('email', email)
+          .eq('password', password)
+          .maybeSingle();
+        
+        if (error || !data) return null;
+        
+        return {
+          id: data.id,
+          name: data.name,
+          email: data.email,
+          role: data.role as UserRole,
+          avatar: data.avatar_url
+        };
+      } catch (e) {
+        console.error("Login crash:", e);
+        return null;
+      }
     }
   },
   profiles: {
     async list() {
       const { data, error } = await supabase.from('profiles').select('*').order('name');
       if (error) throw error;
-      return data.map(p => ({
+      return (data || []).map(p => ({
         id: p.id,
         name: p.name,
         email: p.email,
@@ -37,7 +50,7 @@ export const db = {
     },
     async create(profile: Partial<User & { password?: string }>) {
       const { data, error } = await supabase.from('profiles').insert([{
-        id: crypto.randomUUID(),
+        id: generateId(),
         name: profile.name,
         email: profile.email,
         role: profile.role,
@@ -45,7 +58,13 @@ export const db = {
         avatar_url: profile.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(profile.name || 'user')}`
       }]).select();
       if (error) throw error;
-      return { ...data[0], avatar: data[0].avatar_url } as User;
+      return { 
+        id: data[0].id,
+        name: data[0].name,
+        email: data[0].email,
+        role: data[0].role as UserRole,
+        avatar: data[0].avatar_url 
+      } as User;
     },
     async delete(id: string) {
       const { error } = await supabase.from('profiles').delete().eq('id', id);
@@ -56,9 +75,13 @@ export const db = {
     async list() {
       const { data, error } = await supabase.from('students').select('*').order('name');
       if (error) throw error;
-      return data.map(s => ({
-        ...s,
-        birthDate: s.birth_date, // Mapeamento camelCase
+      return (data || []).map(s => ({
+        id: s.id,
+        name: s.name,
+        birthDate: s.birth_date, 
+        grade: s.grade,
+        school: s.school,
+        subjects: s.subjects || [],
         guardianId: s.guardian_id
       })) as Student[];
     },
@@ -72,7 +95,11 @@ export const db = {
         guardian_id: student.guardianId
       }]).select();
       if (error) throw error;
-      return { ...data[0], birthDate: data[0].birth_date } as Student;
+      return { 
+        ...data[0], 
+        birthDate: data[0].birth_date,
+        guardianId: data[0].guardian_id
+      } as Student;
     },
     async update(id: string, updates: Partial<Student>) {
       const { data, error } = await supabase.from('students').update({
@@ -83,7 +110,11 @@ export const db = {
         subjects: updates.subjects
       }).eq('id', id).select();
       if (error) throw error;
-      return { ...data[0], birthDate: data[0].birth_date } as Student;
+      return { 
+        ...data[0], 
+        birthDate: data[0].birth_date,
+        guardianId: data[0].guardian_id
+      } as Student;
     },
     async delete(id: string) {
       const { error } = await supabase.from('students').delete().eq('id', id);
@@ -94,7 +125,7 @@ export const db = {
     async list() {
       const { data, error } = await supabase.from('payments').select('*').order('due_date', { ascending: false });
       if (error) throw error;
-      return data as Payment[];
+      return (data || []) as Payment[];
     },
     async create(payment: Partial<Payment>) {
       const { data, error } = await supabase.from('payments').insert([{
@@ -112,7 +143,7 @@ export const db = {
     async list() {
       const { data, error } = await supabase.from('classes').select('*').order('date').order('time');
       if (error) throw error;
-      return data as ClassSession[];
+      return (data || []) as ClassSession[];
     },
     async create(classData: Partial<ClassSession>) {
       const { data, error } = await supabase.from('classes').insert([{

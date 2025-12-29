@@ -37,8 +37,8 @@
       }
     </style>
 
-    <!-- Shim fundamental para evitar 'ReferenceError: process is not defined' -->
     <script>
+      // Shim para process.env e API_KEY
       window.process = { env: { API_KEY: "" } };
     </script>
 

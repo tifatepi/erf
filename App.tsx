@@ -32,13 +32,13 @@ const App: React.FC = () => {
     setIsDataSyncing(true);
     try {
       const [sData, pData, cData] = await Promise.all([
-        db.students.list(),
-        db.payments.list(),
-        db.classes.list()
+        db.students.list().catch(() => []),
+        db.payments.list().catch(() => []),
+        db.classes.list().catch(() => [])
       ]);
-      setStudents(sData);
-      setPayments(pData);
-      setClasses(cData);
+      setStudents(sData || []);
+      setPayments(pData || []);
+      setClasses(cData || []);
     } catch (error) {
       console.error("Erro ao carregar dados:", error);
     } finally {
@@ -47,14 +47,14 @@ const App: React.FC = () => {
   };
 
   const stats = useMemo(() => {
-    const totalRevenue = payments
+    const totalRevenue = (payments || [])
       .filter(p => p.status === 'PAID')
       .reduce((acc, curr) => acc + curr.amount, 0);
-    const pendingCount = payments.filter(p => p.status !== 'PAID').length;
+    const pendingCount = (payments || []).filter(p => p.status !== 'PAID').length;
     
     return {
-      totalStudents: students.length,
-      classesDone: classes.filter(c => c.status === 'COMPLETED').length,
+      totalStudents: (students || []).length,
+      classesDone: (classes || []).filter(c => c.status === 'COMPLETED').length,
       revenue: totalRevenue,
       pending: pendingCount
     };
@@ -95,7 +95,7 @@ const App: React.FC = () => {
   const updateStudent = async (id: string, updates: Partial<Student>) => {
     try {
       const updated = await db.students.update(id, updates);
-      setStudents(prev => prev.map(s => s.id === id ? updated : s));
+      setStudents(prev => (prev || []).map(s => s.id === id ? updated : s));
     } catch (err) {
       alert("Erro ao atualizar aluno");
     }
