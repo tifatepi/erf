@@ -24,9 +24,9 @@ export const db = {
         .from('profiles')
         .select('*')
         .eq('email', email)
-        .single();
+        .maybeSingle(); // Usar maybeSingle para evitar erro caso não encontre
       
-      if (error) return null;
+      if (error || !data) return null;
       
       return {
         id: data.id,
@@ -37,25 +37,29 @@ export const db = {
       } as User;
     },
     async create(profile: Partial<User>) {
+      // Removemos o ID manual para deixar o gen_random_uuid() do Postgres agir
       const { data, error } = await supabase
         .from('profiles')
         .insert([{
-          id: crypto.randomUUID(),
           name: profile.name,
           email: profile.email,
           role: profile.role,
-          avatar_url: profile.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.name}`
+          avatar_url: profile.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(profile.name || 'user')}`
         }])
         .select();
       
-      if (error) throw error;
+      if (error) {
+        console.error("Erro Supabase (Profiles):", error);
+        throw error;
+      }
       
+      const created = data[0];
       return {
-        id: data[0].id,
-        name: data[0].name,
-        email: data[0].email,
-        role: data[0].role as UserRole,
-        avatar: data[0].avatar_url
+        id: created.id,
+        name: created.name,
+        email: created.email,
+        role: created.role as UserRole,
+        avatar: created.avatar_url
       } as User;
     },
     async update(id: string, updates: Partial<User>) {

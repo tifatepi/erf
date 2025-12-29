@@ -7,12 +7,11 @@ import {
   Search, 
   Mail, 
   ShieldCheck, 
-  MoreVertical, 
   Edit2, 
   Trash2, 
   X,
   Filter,
-  CheckCircle2
+  AlertCircle
 } from 'lucide-react';
 
 const UserManagement: React.FC = () => {
@@ -21,6 +20,7 @@ const UserManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   
   const [newUser, setNewUser] = useState({
     name: '',
@@ -47,13 +47,15 @@ const UserManagement: React.FC = () => {
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
+    setErrorMsg(null);
     try {
       const created = await db.profiles.create(newUser);
       setUsers(prev => [...prev, created]);
       setIsModalOpen(false);
       setNewUser({ name: '', email: '', role: UserRole.ALUNO });
-    } catch (err) {
-      alert("Erro ao criar usuário");
+    } catch (err: any) {
+      console.error(err);
+      setErrorMsg(err.message || "Erro ao conectar com o Supabase. Verifique o console.");
     } finally {
       setSubmitting(false);
     }
@@ -90,7 +92,7 @@ const UserManagement: React.FC = () => {
           <p className="text-slate-500 font-medium">Controle de acessos e atribuições de permissões.</p>
         </div>
         <button 
-          onClick={() => setIsModalOpen(true)}
+          onClick={() => { setErrorMsg(null); setIsModalOpen(true); }}
           className="bg-indigo-600 text-white px-6 py-3 rounded-2xl text-sm font-bold hover:bg-indigo-700 shadow-xl shadow-indigo-100 flex items-center gap-2 justify-center transition-all active:scale-95"
         >
           <UserPlus size={18} />
@@ -186,6 +188,13 @@ const UserManagement: React.FC = () => {
               </button>
             </div>
             <form onSubmit={handleCreateUser} className="p-8 space-y-5">
+              {errorMsg && (
+                <div className="bg-rose-50 text-rose-600 p-4 rounded-2xl flex items-center gap-3 border border-rose-100 text-sm font-bold animate-pulse">
+                  <AlertCircle size={20} />
+                  {errorMsg}
+                </div>
+              )}
+              
               <div className="space-y-1">
                 <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Nome Completo</label>
                 <input 
@@ -220,7 +229,7 @@ const UserManagement: React.FC = () => {
               <div className="pt-4 flex items-center gap-3 bg-amber-50 p-4 rounded-2xl border border-amber-100">
                 <ShieldCheck size={20} className="text-amber-600 shrink-0" />
                 <p className="text-[10px] text-amber-700 font-bold leading-tight uppercase">
-                  O usuário receberá um convite de ativação no e-mail informado para definir sua senha de acesso.
+                  O sistema criará o perfil diretamente no banco de dados.
                 </p>
               </div>
               <div className="pt-4 flex gap-4">
@@ -236,7 +245,7 @@ const UserManagement: React.FC = () => {
                   disabled={submitting}
                   className="flex-1 px-6 py-4 bg-indigo-600 text-white rounded-2xl text-sm font-black hover:bg-indigo-700 shadow-xl shadow-indigo-100 transition-all active:scale-95 disabled:opacity-50"
                 >
-                  {submitting ? 'Enviando...' : 'Confirmar Convite'}
+                  {submitting ? 'Gravando...' : 'Confirmar Cadastro'}
                 </button>
               </div>
             </form>
