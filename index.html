@@ -9,6 +9,9 @@
     <!-- Tailwind v4 Engine -->
     <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
     
+    <!-- PDF Generation Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -34,6 +37,11 @@
       }
       .animate-fade-in {
         animation: fadeIn 0.4s ease-out forwards;
+      }
+
+      /* Melhoria na renderização do PDF para evitar quebras estranhas */
+      .pdf-canvas {
+        background: white;
       }
     </style>
 

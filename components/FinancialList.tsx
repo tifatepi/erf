@@ -1,7 +1,22 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { Payment, Student } from '../types';
-import { CheckCircle2, AlertCircle, Clock, Search, DollarSign, X, Calendar as CalendarIcon, Save, Info, FileText, Printer, GraduationCap } from 'lucide-react';
+import { 
+  CheckCircle2, 
+  AlertCircle, 
+  Clock, 
+  Search, 
+  DollarSign, 
+  X, 
+  Calendar as CalendarIcon, 
+  Save, 
+  Info, 
+  FileText, 
+  Printer, 
+  GraduationCap,
+  Share2,
+  Loader2
+} from 'lucide-react';
 
 interface FinancialListProps {
   payments: Payment[];
@@ -9,11 +24,14 @@ interface FinancialListProps {
   onAddPayment: (payment: Partial<Payment>) => Promise<void>;
 }
 
+declare const html2pdf: any;
+
 const FinancialList: React.FC<FinancialListProps> = ({ payments, students, onAddPayment }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   
   const today = new Date().toISOString().split('T')[0];
@@ -75,6 +93,51 @@ const FinancialList: React.FC<FinancialListProps> = ({ payments, students, onAdd
     window.print();
   };
 
+  const handleSharePDF = async () => {
+    if (!selectedPayment) return;
+    
+    setIsGeneratingPDF(true);
+    const element = document.getElementById('printable-receipt');
+    const studentName = getStudentName(selectedPayment.studentId);
+    const fileName = `Recibo_${studentName.replace(/\s+/g, '_')}_${selectedPayment.description.replace(/\s+/g, '_')}.pdf`;
+
+    const opt = {
+      margin: 10,
+      filename: fileName,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true, letterRendering: true },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+
+    try {
+      // Gera o blob do PDF
+      const pdfBlob = await html2pdf().from(element).set(opt).output('blob');
+      
+      // Tenta usar a Web Share API
+      if (navigator.share && navigator.canShare && navigator.canShare({ files: [new File([pdfBlob], fileName, { type: 'application/pdf' })] })) {
+        const file = new File([pdfBlob], fileName, { type: 'application/pdf' });
+        await navigator.share({
+          files: [file],
+          title: 'Recibo de Pagamento - EduBoost',
+          text: `Segue o recibo de pagamento de ${studentName} referente a ${selectedPayment.description}.`
+        });
+      } else {
+        // Fallback: Download tradicional se não houver suporte a compartilhamento de arquivos
+        const url = URL.createObjectURL(pdfBlob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = fileName;
+        link.click();
+        URL.revokeObjectURL(url);
+      }
+    } catch (error) {
+      console.error('Erro ao gerar/compartilhar PDF:', error);
+      alert('Não foi possível gerar o PDF para compartilhamento.');
+    } finally {
+      setIsGeneratingPDF(false);
+    }
+  };
+
   const filteredPayments = payments.filter(p => 
     getStudentName(p.studentId).toLowerCase().includes(searchTerm.toLowerCase()) ||
     p.description.toLowerCase().includes(searchTerm.toLowerCase())
@@ -86,9 +149,10 @@ const FinancialList: React.FC<FinancialListProps> = ({ payments, students, onAdd
 
   const formatDateWithTime = (dateStr?: string) => {
     const date = dateStr ? new Date(dateStr) : new Date();
-    // Se não houver hora gravada (string de data simples), usamos a hora atual para o recibo de emissão
     const now = new Date();
-    return `${date.toLocaleDateString('pt-BR')} às ${now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
+    // Ajuste para evitar problemas de fuso horário na exibição da data de pagamento
+    const displayDate = dateStr ? new Date(dateStr + 'T12:00:00') : now;
+    return `${displayDate.toLocaleDateString('pt-BR')} às ${now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
   };
 
   return (
@@ -98,7 +162,15 @@ const FinancialList: React.FC<FinancialListProps> = ({ payments, students, onAdd
         @media print {
           body * { visibility: hidden; }
           #printable-receipt, #printable-receipt * { visibility: visible; }
-          #printable-receipt { position: absolute; left: 0; top: 0; width: 100%; margin: 0; padding: 20px; }
+          #printable-receipt { 
+            position: absolute; 
+            left: 0; 
+            top: 0; 
+            width: 100%; 
+            margin: 0; 
+            padding: 40px;
+            box-shadow: none;
+          }
           .no-print { display: none !important; }
         }
       `}</style>
@@ -188,7 +260,7 @@ const FinancialList: React.FC<FinancialListProps> = ({ payments, students, onAdd
                     <td className="px-6 md:px-8 py-5">
                       <div className="flex items-center gap-2 text-slate-500 font-medium whitespace-nowrap">
                         <CalendarIcon size={14} className="opacity-40 shrink-0" />
-                        {new Date(payment.dueDate).toLocaleDateString('pt-BR')}
+                        {new Date(payment.dueDate + 'T12:00:00').toLocaleDateString('pt-BR')}
                       </div>
                     </td>
                     <td className="px-6 md:px-8 py-5">
@@ -347,16 +419,25 @@ const FinancialList: React.FC<FinancialListProps> = ({ payments, students, onAdd
 
       {/* Modal Visualizar Recibo */}
       {isReceiptOpen && selectedPayment && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 animate-fade-in overflow-y-auto">
-          <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-2xl overflow-hidden border border-slate-200">
-            <div className="p-6 border-b border-slate-100 flex items-center justify-between no-print bg-slate-50">
-              <h3 className="font-black text-slate-900">Prévia do Recibo</h3>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-2 md:p-4 animate-fade-in overflow-y-auto">
+          <div className="bg-white rounded-[1.5rem] md:rounded-[2rem] shadow-2xl w-full max-w-2xl overflow-hidden border border-slate-200">
+            <div className="p-4 md:p-6 border-b border-slate-100 flex items-center justify-between no-print bg-slate-50">
+              <h3 className="font-black text-slate-900 text-sm md:text-base">Visualização do Recibo</h3>
               <div className="flex gap-2">
                 <button 
-                  onClick={handlePrint}
-                  className="bg-indigo-600 text-white px-4 py-2 rounded-xl text-xs font-black flex items-center gap-2 hover:bg-indigo-700 transition-all"
+                  onClick={handleSharePDF}
+                  disabled={isGeneratingPDF}
+                  className="bg-indigo-600 text-white px-3 md:px-4 py-2 rounded-xl text-[10px] md:text-xs font-black flex items-center gap-2 hover:bg-indigo-700 transition-all active:scale-95 disabled:opacity-50"
                 >
-                  <Printer size={16} /> Imprimir
+                  {isGeneratingPDF ? <Loader2 size={16} className="animate-spin" /> : <Share2 size={16} />}
+                  <span className="hidden xs:inline">{isGeneratingPDF ? 'Gerando...' : 'Compartilhar'}</span>
+                </button>
+                <button 
+                  onClick={handlePrint}
+                  className="bg-slate-900 text-white px-3 md:px-4 py-2 rounded-xl text-[10px] md:text-xs font-black flex items-center gap-2 hover:bg-slate-800 transition-all active:scale-95"
+                >
+                  <Printer size={16} /> 
+                  <span className="hidden xs:inline">Imprimir</span>
                 </button>
                 <button onClick={() => setIsReceiptOpen(false)} className="p-2 hover:bg-slate-200 rounded-xl transition-all">
                   <X size={20} />
@@ -364,67 +445,67 @@ const FinancialList: React.FC<FinancialListProps> = ({ payments, students, onAdd
               </div>
             </div>
 
-            {/* ÁREA DO RECIBO */}
-            <div id="printable-receipt" className="p-10 md:p-16 text-slate-800 bg-white relative">
+            {/* ÁREA DO RECIBO - IMPORTANTE: Fundo branco para html2canvas */}
+            <div id="printable-receipt" className="p-8 md:p-16 text-slate-800 bg-white relative min-h-[600px]">
               {/* Marca d'água discreta */}
               <div className="absolute inset-0 flex items-center justify-center opacity-[0.03] pointer-events-none rotate-12">
                 <GraduationCap size={400} />
               </div>
 
               <div className="relative z-10">
-                <div className="flex justify-between items-start mb-12 border-b-2 border-slate-900 pb-8">
-                  <div className="flex items-center gap-4">
-                    <div className="bg-slate-900 p-3 rounded-2xl">
-                      <GraduationCap className="text-white" size={32} />
+                <div className="flex justify-between items-start mb-8 md:mb-12 border-b-2 border-slate-900 pb-6 md:pb-8">
+                  <div className="flex items-center gap-3 md:gap-4">
+                    <div className="bg-slate-900 p-2 md:p-3 rounded-2xl">
+                      <GraduationCap className="text-white" size={24} />
                     </div>
                     <div>
-                      <h1 className="text-2xl font-black tracking-tighter uppercase">EduBoost</h1>
-                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Escola de Reforço Escolar</p>
+                      <h1 className="text-xl md:text-2xl font-black tracking-tighter uppercase">EduBoost</h1>
+                      <p className="text-[8px] md:text-[10px] font-bold text-slate-500 uppercase tracking-widest">Escola de Reforço Escolar</p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <h2 className="text-3xl font-black text-slate-900 mb-1">RECIBO</h2>
-                    <p className="text-sm font-bold text-slate-400">Nº {selectedPayment.id.padStart(6, '0')}</p>
+                    <h2 className="text-2xl md:text-3xl font-black text-slate-900 mb-0.5 md:mb-1">RECIBO</h2>
+                    <p className="text-xs md:text-sm font-bold text-slate-400">Nº {selectedPayment.id.padStart(6, '0')}</p>
                   </div>
                 </div>
 
-                <div className="space-y-8 mb-16">
+                <div className="space-y-6 md:space-y-8 mb-12 md:mb-16">
                   <div className="flex items-baseline gap-4 border-b border-slate-100 pb-2">
-                    <span className="text-xs font-black uppercase text-slate-400 shrink-0">Valor:</span>
-                    <span className="text-2xl font-black text-slate-900">{formatCurrency(selectedPayment.amount)}</span>
+                    <span className="text-[10px] md:text-xs font-black uppercase text-slate-400 shrink-0">Valor:</span>
+                    <span className="text-xl md:text-2xl font-black text-slate-900">{formatCurrency(selectedPayment.amount)}</span>
                   </div>
 
-                  <p className="text-lg leading-relaxed">
+                  <p className="text-base md:text-lg leading-relaxed">
                     Recebemos de <span className="font-black border-b-2 border-slate-200">{getStudentName(selectedPayment.studentId)}</span>, 
                     a quantia supramencionada referente a <span className="font-black italic">{selectedPayment.description}</span>, 
                     pelo que firmamos o presente recibo dando plena quitação.
                   </p>
 
-                  <div className="flex flex-col gap-1 text-sm text-slate-500">
+                  <div className="flex flex-col gap-1 text-xs md:text-sm text-slate-500">
                     <p className="font-bold flex items-center gap-2">
                       <CalendarIcon size={14} /> 
                       Data do Pagamento: <span className="text-slate-900">{formatDateWithTime(selectedPayment.paymentDate)}</span>
                     </p>
-                    <p className="text-[10px] uppercase font-black tracking-widest mt-2">Local de Emissão: São Paulo - SP</p>
+                    <p className="text-[9px] md:text-[10px] uppercase font-black tracking-widest mt-2">Local de Emissão: São Paulo - SP</p>
                   </div>
                 </div>
 
-                <div className="mt-24 grid grid-cols-1 md:grid-cols-2 gap-12">
+                <div className="mt-16 md:mt-24 grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
                   <div className="text-center">
-                    <div className="border-t-2 border-slate-900 pt-4">
-                      <p className="text-xs font-black uppercase tracking-widest">Responsável EduBoost</p>
-                      <p className="text-[10px] text-slate-400">CNPJ: 00.000.000/0001-00</p>
+                    <div className="border-t-2 border-slate-900 pt-3 md:pt-4">
+                      <p className="text-[10px] md:text-xs font-black uppercase tracking-widest">Responsável EduBoost</p>
+                      <p className="text-[8px] md:text-[10px] text-slate-400">CNPJ: 00.000.000/0001-00</p>
                     </div>
                   </div>
                   <div className="text-center">
-                    <div className="border-t border-slate-200 pt-4">
-                      <p className="text-xs font-black uppercase tracking-widest">Assinatura do Pagador</p>
+                    <div className="border-t border-slate-200 pt-3 md:pt-4">
+                      <p className="text-[10px] md:text-xs font-black uppercase tracking-widest">Assinatura do Pagador</p>
                     </div>
                   </div>
                 </div>
 
-                <div className="mt-20 pt-8 border-t border-slate-50 text-center">
-                  <p className="text-[9px] font-black text-slate-300 uppercase tracking-[0.3em]">Obrigado pela confiança em nosso trabalho pedagógico</p>
+                <div className="mt-16 md:mt-20 pt-8 border-t border-slate-50 text-center">
+                  <p className="text-[8px] md:text-[9px] font-black text-slate-300 uppercase tracking-[0.3em]">Obrigado pela confiança em nosso trabalho pedagógico</p>
                 </div>
               </div>
             </div>
