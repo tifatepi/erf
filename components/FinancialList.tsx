@@ -27,8 +27,6 @@ interface FinancialListProps {
   onUpdatePayment: (id: string, updates: Partial<Payment>) => Promise<void>;
 }
 
-declare const html2pdf: any;
-
 const FinancialList: React.FC<FinancialListProps> = ({ payments, students, onAddPayment, onUpdatePayment }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
@@ -83,7 +81,7 @@ const FinancialList: React.FC<FinancialListProps> = ({ payments, students, onAdd
       setIsModalOpen(false);
       setNewPay({ studentId: '', amount: 0, description: 'Janeiro', date: today, dueDate: today, status: 'PENDING' });
     } catch (err: any) {
-      alert(`Erro ao salvar: ${err.message || 'Verifique se as colunas existem no banco'}`);
+      alert(`Erro ao salvar: ${err.message || 'Erro na comunicação com o servidor'}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -119,21 +117,51 @@ const FinancialList: React.FC<FinancialListProps> = ({ payments, students, onAdd
   };
 
   const downloadPDF = () => {
-    if (!receiptRef.current) return;
+    if (!receiptRef.current) {
+      alert("Erro interno: Referência do recibo não encontrada.");
+      return;
+    }
+
+    const html2pdf = (window as any).html2pdf;
+    if (!html2pdf) {
+      alert("Erro: A biblioteca de geração de PDF ainda não foi carregada. Por favor, aguarde alguns segundos e tente novamente.");
+      return;
+    }
+
     setIsGeneratingPDF(true);
     
+    // Clonamos as opções para garantir estabilidade
     const element = receiptRef.current;
+    const studentName = getStudentName(selectedPayment?.studentId || '');
+    const fileName = `recibo-${studentName.toLowerCase().replace(/\s+/g, '-')}-${today}.pdf`;
+
     const opt = {
-      margin: 10,
-      filename: `recibo-${getStudentName(selectedPayment?.studentId || '')}.pdf`,
+      margin: [10, 10, 10, 10],
+      filename: fileName,
       image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true },
+      html2canvas: { 
+        scale: 2, 
+        useCORS: true, 
+        letterRendering: true,
+        logging: false 
+      },
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
 
-    html2pdf().from(element).set(opt).save().finally(() => {
-      setIsGeneratingPDF(false);
-    });
+    html2pdf()
+      .from(element)
+      .set(opt)
+      .save()
+      .then(() => {
+        console.log("PDF gerado com sucesso");
+      })
+      .catch((err: any) => {
+        console.error("Erro ao gerar PDF:", err);
+        alert("Ocorreu um erro ao gerar o arquivo PDF. Tente novamente.");
+      })
+      .finally(() => {
+        setIsGeneratingPDF(false);
+      });
   };
 
   const filteredPayments = payments.filter(p => 
@@ -349,8 +377,8 @@ const FinancialList: React.FC<FinancialListProps> = ({ payments, students, onAdd
 
       {/* Modal Recibo */}
       {isReceiptOpen && selectedPayment && (
-        <div className="fixed inset-0 z-[130] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 animate-fade-in">
-          <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-2xl overflow-hidden border border-white/20">
+        <div className="fixed inset-0 z-[130] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 animate-fade-in overflow-y-auto">
+          <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-4xl overflow-hidden border border-white/20 my-8">
             <div className="p-6 md:p-8 border-b border-slate-50 flex items-center justify-between bg-slate-900 text-white">
               <div>
                 <h3 className="font-black text-xl tracking-tight">Visualização do Recibo</h3>
@@ -361,47 +389,53 @@ const FinancialList: React.FC<FinancialListProps> = ({ payments, students, onAdd
               </button>
             </div>
 
-            <div className="p-4 md:p-8 overflow-y-auto max-h-[60vh] custom-scrollbar bg-slate-100">
+            <div className="p-4 md:p-8 bg-slate-100 flex justify-center">
+              {/* Recibo Interno - Alvo do html2pdf */}
               <div 
                 ref={receiptRef}
-                className="bg-white p-8 md:p-12 shadow-sm rounded-lg border border-slate-200 mx-auto max-w-full font-serif text-slate-800"
-                style={{ width: '210mm', minHeight: '148mm' }}
+                className="bg-white p-12 shadow-sm border border-slate-200 font-serif text-slate-800"
+                style={{ 
+                  width: '210mm', 
+                  minHeight: '297mm',
+                  backgroundColor: '#ffffff',
+                  color: '#1e293b'
+                }}
               >
                 <div className="flex justify-between items-start border-b-2 border-slate-800 pb-8 mb-8">
                   <div>
-                    <h2 className="text-3xl font-black italic text-indigo-600 tracking-tighter">EduBoost</h2>
-                    <p className="text-[10px] font-bold uppercase text-slate-500 mt-1">Escola de Reforço Escolar</p>
+                    <h2 className="text-4xl font-black italic text-indigo-600 tracking-tighter" style={{ color: '#4f46e5' }}>EduBoost</h2>
+                    <p className="text-[12px] font-bold uppercase text-slate-500 mt-1">Escola de Reforço Escolar</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-lg font-black">RECIBO Nº {selectedPayment.id.slice(0, 8).toUpperCase()}</p>
-                    <p className="text-xl font-black text-indigo-600">{formatCurrency(selectedPayment.amount)}</p>
+                    <p className="text-xl font-black">RECIBO Nº {selectedPayment.id.slice(0, 8).toUpperCase()}</p>
+                    <p className="text-2xl font-black text-indigo-600" style={{ color: '#4f46e5' }}>{formatCurrency(selectedPayment.amount)}</p>
                   </div>
                 </div>
 
-                <div className="space-y-6 text-base leading-relaxed">
+                <div className="space-y-12 text-lg leading-relaxed mt-20">
                   <p>
                     Recebemos de <span className="font-bold border-b border-slate-400 px-2">{getStudentName(selectedPayment.studentId)}</span>, 
                     a quantia de <span className="font-bold border-b border-slate-400 px-2">{formatCurrency(selectedPayment.amount)}</span> 
                     referente a <span className="font-bold border-b border-slate-400 px-2">{selectedPayment.description}</span>.
                   </p>
 
-                  <div className="grid grid-cols-2 gap-8 mt-12">
+                  <div className="grid grid-cols-2 gap-12 mt-20">
                     <div>
-                      <p className="text-[10px] font-bold uppercase text-slate-400 mb-1">Data do Pagamento</p>
-                      <p className="font-bold border-b border-slate-200 pb-2">
+                      <p className="text-[12px] font-bold uppercase text-slate-400 mb-2">Data do Pagamento</p>
+                      <p className="font-bold border-b border-slate-200 pb-2 text-xl">
                         {selectedPayment.paymentDate ? new Date(selectedPayment.paymentDate + 'T12:00:00').toLocaleDateString('pt-BR', { dateStyle: 'long' }) : '---'}
                       </p>
                     </div>
                     <div>
-                      <p className="text-[10px] font-bold uppercase text-slate-400 mb-1">Local</p>
-                      <p className="font-bold border-b border-slate-200 pb-2">Cidade do Aluno, Brasil</p>
+                      <p className="text-[12px] font-bold uppercase text-slate-400 mb-2">Local</p>
+                      <p className="font-bold border-b border-slate-200 pb-2 text-xl">Brasil</p>
                     </div>
                   </div>
 
-                  <div className="mt-20 pt-8 border-t border-slate-200 flex flex-col items-center">
-                    <div className="w-64 border-b-2 border-slate-800 mb-2"></div>
-                    <p className="text-sm font-black uppercase tracking-widest text-slate-800">Assinatura da Coordenação</p>
-                    <p className="text-[10px] text-slate-400 mt-1">EduBoost Reforço Escolar - CNPJ: 00.000.000/0001-00</p>
+                  <div className="mt-40 pt-12 border-t border-slate-200 flex flex-col items-center">
+                    <div className="w-80 border-b-2 border-slate-800 mb-3"></div>
+                    <p className="text-base font-black uppercase tracking-widest text-slate-800">Assinatura da Coordenação</p>
+                    <p className="text-xs text-slate-400 mt-2">EduBoost Reforço Escolar • Gestão de Ensino</p>
                   </div>
                 </div>
               </div>
@@ -412,19 +446,19 @@ const FinancialList: React.FC<FinancialListProps> = ({ payments, students, onAdd
                 onClick={() => setIsReceiptOpen(false)} 
                 className="flex-1 px-6 py-4 bg-white border border-slate-200 text-slate-600 rounded-2xl text-sm font-black hover:bg-slate-100 transition-all"
               >
-                Fechar
+                Fechar Visualização
               </button>
               <button 
                 onClick={downloadPDF}
                 disabled={isGeneratingPDF}
-                className="flex-1 px-6 py-4 bg-indigo-600 text-white rounded-2xl text-sm font-black hover:bg-indigo-700 shadow-xl shadow-indigo-100 flex items-center justify-center gap-2 transition-all active:scale-95"
+                className="flex-1 px-6 py-4 bg-indigo-600 text-white rounded-2xl text-sm font-black hover:bg-indigo-700 shadow-xl shadow-indigo-100 flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-70"
               >
                 {isGeneratingPDF ? (
                   <Loader2 className="animate-spin" size={20} />
                 ) : (
                   <Download size={20} />
                 )}
-                {isGeneratingPDF ? 'Gerando...' : 'Baixar Recibo PDF'}
+                {isGeneratingPDF ? 'Gerando Arquivo...' : 'Baixar Recibo em PDF'}
               </button>
             </div>
           </div>
