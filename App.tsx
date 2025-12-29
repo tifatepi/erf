@@ -233,7 +233,7 @@ const App: React.FC = () => {
       case 'teachers':
         return <TeacherList teachers={teachers} onAdd={addTeacher} onUpdate={updateTeacher} onDelete={deleteTeacher} />;
       case 'students':
-        return <StudentList students={students} onAddStudent={addStudent} onUpdateStudent={updateStudent} />;
+        return <StudentList students={students} institutions={institutions} onAddStudent={addStudent} onUpdateStudent={updateStudent} />;
       case 'financial':
         return <FinancialList payments={payments} students={students} onAddPayment={addPayment} />;
       case 'calendar':

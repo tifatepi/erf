@@ -1,16 +1,17 @@
 
 import React, { useState } from 'react';
-import { Search, Plus, MessageSquareCode, X, Edit, Save, DollarSign } from 'lucide-react';
+import { Search, Plus, MessageSquareCode, X, Edit, Save, DollarSign, Building2 } from 'lucide-react';
 import { getAcademicInsights } from '../services/geminiService';
-import { Student } from '../types';
+import { Student, Institution } from '../types';
 
 interface StudentListProps {
   students: Student[];
+  institutions: Institution[];
   onAddStudent: (student: Partial<Student>) => Promise<void>;
   onUpdateStudent: (id: string, student: Partial<Student>) => Promise<void>;
 }
 
-const StudentList: React.FC<StudentListProps> = ({ students, onAddStudent, onUpdateStudent }) => {
+const StudentList: React.FC<StudentListProps> = ({ students, institutions, onAddStudent, onUpdateStudent }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [aiInsight, setAiInsight] = useState<string | null>(null);
   const [loadingAi, setLoadingAi] = useState(false);
@@ -261,14 +262,22 @@ const StudentList: React.FC<StudentListProps> = ({ students, onAddStudent, onUpd
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-1.5">
-                  <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Escola</label>
-                  <input 
-                    type="text"
-                    placeholder="Nome da instituição"
-                    className="w-full px-5 py-4 bg-slate-50 border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-                    value={formData.school}
-                    onChange={e => setFormData({...formData, school: e.target.value})}
-                  />
+                  <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Escola / Instituição</label>
+                  <div className="relative">
+                    <Building2 size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                    <select 
+                      required
+                      className="w-full pl-12 pr-5 py-4 bg-slate-50 border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none transition-all appearance-none cursor-pointer"
+                      value={formData.school}
+                      onChange={e => setFormData({...formData, school: e.target.value})}
+                    >
+                      <option value="">Selecione uma escola...</option>
+                      {institutions.map(inst => (
+                        <option key={inst.id} value={inst.name}>{inst.name}</option>
+                      ))}
+                      <option value="Outra">Outra (Não listada)</option>
+                    </select>
+                  </div>
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Valor Mensalidade</label>
