@@ -2,7 +2,6 @@
 import { supabase } from '../lib/supabase';
 import { Student, Payment, ClassSession, User, UserRole } from '../types';
 
-// Helper para gerar IDs caso o crypto.randomUUID não esteja disponível
 const generateId = () => {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
     return crypto.randomUUID();
@@ -125,18 +124,36 @@ export const db = {
     async list() {
       const { data, error } = await supabase.from('payments').select('*').order('due_date', { ascending: false });
       if (error) throw error;
-      return (data || []) as Payment[];
+      return (data || []).map(p => ({
+        id: String(p.id),
+        studentId: String(p.student_id),
+        amount: Number(p.amount),
+        dueDate: p.due_date,
+        paymentDate: p.payment_date,
+        status: p.status,
+        description: p.description
+      })) as Payment[];
     },
     async create(payment: Partial<Payment>) {
       const { data, error } = await supabase.from('payments').insert([{
         student_id: payment.studentId,
         amount: payment.amount,
         due_date: payment.dueDate,
+        payment_date: payment.paymentDate,
         status: payment.status,
         description: payment.description
       }]).select();
       if (error) throw error;
-      return data[0] as Payment;
+      const p = data[0];
+      return {
+        id: String(p.id),
+        studentId: String(p.student_id),
+        amount: Number(p.amount),
+        dueDate: p.due_date,
+        paymentDate: p.payment_date,
+        status: p.status,
+        description: p.description
+      } as Payment;
     }
   },
   classes: {
@@ -147,7 +164,7 @@ export const db = {
         id: String(c.id),
         subject: c.subject,
         teacherId: c.teacher_id,
-        studentId: c.student_id,
+        studentId: String(c.student_id),
         date: c.date,
         time: c.time,
         status: c.status,
@@ -171,7 +188,7 @@ export const db = {
         id: String(c.id),
         subject: c.subject,
         teacherId: c.teacher_id,
-        studentId: c.student_id,
+        studentId: String(c.student_id),
         date: c.date,
         time: c.time,
         status: c.status,
@@ -194,7 +211,7 @@ export const db = {
         id: String(c.id),
         subject: c.subject,
         teacherId: c.teacher_id,
-        studentId: c.student_id,
+        studentId: String(c.student_id),
         date: c.date,
         time: c.time,
         status: c.status,
@@ -202,12 +219,8 @@ export const db = {
       } as ClassSession;
     },
     async delete(id: string | number) {
-      console.log(`Tentando excluir aula com ID: ${id}`);
       const { error } = await supabase.from('classes').delete().eq('id', id);
-      if (error) {
-        console.error("Erro na resposta do Supabase ao deletar:", error);
-        throw error;
-      }
+      if (error) throw error;
       return true;
     }
   }

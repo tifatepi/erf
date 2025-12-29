@@ -29,6 +29,7 @@ export interface Payment {
   studentId: string;
   amount: number;
   dueDate: string;
+  paymentDate?: string; // Campo opcional para quando a receita é lançada
   status: 'PAID' | 'PENDING' | 'OVERDUE';
   description: string;
 }
