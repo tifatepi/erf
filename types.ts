@@ -14,6 +14,22 @@ export interface User {
   avatar?: string;
 }
 
+export interface Institution {
+  id: string;
+  name: string;
+  cnpj: string;
+  contactName: string;
+  contactPhone: string;
+}
+
+export interface Teacher {
+  id: string;
+  name: string;
+  cpf: string;
+  education: string;
+  phone: string;
+}
+
 export interface Student {
   id: string;
   name: string;
@@ -22,7 +38,7 @@ export interface Student {
   school: string;
   guardianId: string;
   subjects: string[];
-  monthlyFee?: number; // Novo campo para valor da mensalidade
+  monthlyFee?: number;
 }
 
 export interface Payment {

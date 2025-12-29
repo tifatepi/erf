@@ -3,12 +3,14 @@ import React, { useState, useMemo, useEffect } from 'react';
 import Layout from './components/Layout';
 import Dashboard from './components/Dashboard';
 import StudentList from './components/StudentList';
+import InstitutionList from './components/InstitutionList';
+import TeacherList from './components/TeacherList';
 import FinancialList from './components/FinancialList';
 import AcademicView from './components/AcademicView';
 import CalendarView from './components/CalendarView';
 import UserManagement from './components/UserManagement';
 import Login from './components/Login';
-import { UserRole, Student, Payment, ClassSession, User } from './types';
+import { UserRole, Student, Payment, ClassSession, User, Institution, Teacher } from './types';
 import { db } from './services/supabaseService';
 
 const App: React.FC = () => {
@@ -19,6 +21,8 @@ const App: React.FC = () => {
   const [isDataSyncing, setIsDataSyncing] = useState(false);
   
   const [students, setStudents] = useState<Student[]>([]);
+  const [institutions, setInstitutions] = useState<Institution[]>([]);
+  const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [classes, setClasses] = useState<ClassSession[]>([]);
 
@@ -31,12 +35,16 @@ const App: React.FC = () => {
   const loadAllData = async () => {
     setIsDataSyncing(true);
     try {
-      const [sData, pData, cData] = await Promise.all([
+      const [sData, iData, tData, pData, cData] = await Promise.all([
         db.students.list().catch(() => []),
+        db.institutions.list().catch(() => []),
+        db.teachers.list().catch(() => []),
         db.payments.list().catch(() => []),
         db.classes.list().catch(() => [])
       ]);
       setStudents(sData || []);
+      setInstitutions(iData || []);
+      setTeachers(tData || []);
       setPayments(pData || []);
       setClasses(cData || []);
     } catch (error) {
@@ -83,6 +91,67 @@ const App: React.FC = () => {
     setActiveTab('dashboard');
   };
 
+  // CRUD Instituições
+  const addInstitution = async (data: Partial<Institution>) => {
+    try {
+      const created = await db.institutions.create(data);
+      setInstitutions(prev => [...prev, created]);
+    } catch (err) {
+      alert("Erro ao criar instituição.");
+    }
+  };
+
+  const updateInstitution = async (id: string, data: Partial<Institution>) => {
+    try {
+      const updated = await db.institutions.update(id, data);
+      setInstitutions(prev => prev.map(i => i.id === id ? updated : i));
+    } catch (err) {
+      alert("Erro ao atualizar instituição.");
+    }
+  };
+
+  const deleteInstitution = async (id: string) => {
+    if (window.confirm("Deseja realmente excluir esta instituição?")) {
+      try {
+        await db.institutions.delete(id);
+        setInstitutions(prev => prev.filter(i => i.id !== id));
+      } catch (err) {
+        alert("Erro ao excluir instituição.");
+      }
+    }
+  };
+
+  // CRUD Docentes
+  const addTeacher = async (data: Partial<Teacher>) => {
+    try {
+      const created = await db.teachers.create(data);
+      setTeachers(prev => [...prev, created]);
+    } catch (err) {
+      alert("Erro ao criar docente.");
+    }
+  };
+
+  const updateTeacher = async (id: string, data: Partial<Teacher>) => {
+    try {
+      const updated = await db.teachers.update(id, data);
+      setTeachers(prev => prev.map(t => t.id === id ? updated : t));
+    } catch (err) {
+      alert("Erro ao atualizar docente.");
+    }
+  };
+
+  const deleteTeacher = async (id: string) => {
+    if (window.confirm("Deseja realmente excluir este docente?")) {
+      try {
+        await db.teachers.delete(id);
+        setTeachers(prev => prev.filter(t => t.id !== id));
+      } catch (err) {
+        alert("Erro ao excluir docente.");
+      }
+    }
+  };
+
+  // CRUD Alunos
   const addStudent = async (newStudent: Partial<Student>) => {
     try {
       const created = await db.students.create(newStudent);
@@ -159,6 +228,10 @@ const App: React.FC = () => {
     switch (activeTab) {
       case 'dashboard':
         return <Dashboard stats={stats} classes={classes} students={students} />;
+      case 'institutions':
+        return <InstitutionList institutions={institutions} onAdd={addInstitution} onUpdate={updateInstitution} onDelete={deleteInstitution} />;
+      case 'teachers':
+        return <TeacherList teachers={teachers} onAdd={addTeacher} onUpdate={updateTeacher} onDelete={deleteTeacher} />;
       case 'students':
         return <StudentList students={students} onAddStudent={addStudent} onUpdateStudent={updateStudent} />;
       case 'financial':

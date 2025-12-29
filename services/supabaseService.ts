@@ -1,6 +1,6 @@
 
 import { supabase } from '../lib/supabase';
-import { Student, Payment, ClassSession, User, UserRole } from '../types';
+import { Student, Payment, ClassSession, User, UserRole, Institution, Teacher } from '../types';
 
 export const db = {
   auth: {
@@ -59,6 +59,108 @@ export const db = {
     },
     async delete(id: string) {
       const { error } = await supabase.from('profiles').delete().eq('id', id);
+      if (error) throw error;
+    }
+  },
+  institutions: {
+    async list() {
+      const { data, error } = await supabase.from('institutions').select('*').order('name');
+      if (error) throw error;
+      return (data || []).map(i => ({
+        id: String(i.id),
+        name: i.name,
+        cnpj: i.cnpj,
+        contactName: i.contact_name,
+        contactPhone: i.contact_phone
+      })) as Institution[];
+    },
+    async create(inst: Partial<Institution>) {
+      const { data, error } = await supabase.from('institutions').insert([{
+        name: inst.name,
+        cnpj: inst.cnpj,
+        contact_name: inst.contactName,
+        contact_phone: inst.contactPhone
+      }]).select();
+      if (error) throw error;
+      const i = data[0];
+      return {
+        id: String(i.id),
+        name: i.name,
+        cnpj: i.cnpj,
+        contactName: i.contact_name,
+        contactPhone: i.contact_phone
+      } as Institution;
+    },
+    async update(id: string, updates: Partial<Institution>) {
+      const { data, error } = await supabase.from('institutions').update({
+        name: updates.name,
+        cnpj: updates.cnpj,
+        contact_name: updates.contactName,
+        contact_phone: updates.contactPhone
+      }).eq('id', id).select();
+      if (error) throw error;
+      const i = data[0];
+      return {
+        id: String(i.id),
+        name: i.name,
+        cnpj: i.cnpj,
+        contactName: i.contact_name,
+        contactPhone: i.contact_phone
+      } as Institution;
+    },
+    async delete(id: string) {
+      const { error } = await supabase.from('institutions').delete().eq('id', id);
+      if (error) throw error;
+    }
+  },
+  teachers: {
+    async list() {
+      const { data, error } = await supabase.from('teachers').select('*').order('name');
+      if (error) throw error;
+      return (data || []).map(t => ({
+        id: String(t.id),
+        name: t.name,
+        cpf: t.cpf,
+        education: t.education,
+        phone: t.phone
+      })) as Teacher[];
+    },
+    async create(teacher: Partial<Teacher>) {
+      const { data, error } = await supabase.from('teachers').insert([{
+        name: teacher.name,
+        cpf: teacher.cpf,
+        education: teacher.education,
+        phone: teacher.phone
+      }]).select();
+      if (error) throw error;
+      const t = data[0];
+      return {
+        id: String(t.id),
+        name: t.name,
+        cpf: t.cpf,
+        education: t.education,
+        phone: t.phone
+      } as Teacher;
+    },
+    async update(id: string, updates: Partial<Teacher>) {
+      const { data, error } = await supabase.from('teachers').update({
+        name: updates.name,
+        cpf: updates.cpf,
+        education: updates.education,
+        phone: updates.phone
+      }).eq('id', id).select();
+      if (error) throw error;
+      const t = data[0];
+      return {
+        id: String(t.id),
+        name: t.name,
+        cpf: t.cpf,
+        education: t.education,
+        phone: t.phone
+      } as Teacher;
+    },
+    async delete(id: string) {
+      const { error } = await supabase.from('teachers').delete().eq('id', id);
       if (error) throw error;
     }
   },
