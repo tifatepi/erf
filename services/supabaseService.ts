@@ -143,7 +143,16 @@ export const db = {
     async list() {
       const { data, error } = await supabase.from('classes').select('*').order('date').order('time');
       if (error) throw error;
-      return (data || []) as ClassSession[];
+      return (data || []).map(c => ({
+        id: c.id,
+        subject: c.subject,
+        teacherId: c.teacher_id,
+        studentId: c.student_id,
+        date: c.date,
+        time: c.time,
+        status: c.status,
+        notes: c.notes
+      })) as ClassSession[];
     },
     async create(classData: Partial<ClassSession>) {
       const { data, error } = await supabase.from('classes').insert([{
@@ -156,7 +165,45 @@ export const db = {
         notes: classData.notes
       }]).select();
       if (error) throw error;
-      return data[0] as ClassSession;
+      
+      const c = data[0];
+      return {
+        id: c.id,
+        subject: c.subject,
+        teacherId: c.teacher_id,
+        studentId: c.student_id,
+        date: c.date,
+        time: c.time,
+        status: c.status,
+        notes: c.notes
+      } as ClassSession;
+    },
+    async update(id: string, updates: Partial<ClassSession>) {
+      const { data, error } = await supabase.from('classes').update({
+        subject: updates.subject,
+        student_id: updates.studentId,
+        date: updates.date,
+        time: updates.time,
+        notes: updates.notes,
+        status: updates.status
+      }).eq('id', id).select();
+      if (error) throw error;
+      
+      const c = data[0];
+      return {
+        id: c.id,
+        subject: c.subject,
+        teacherId: c.teacher_id,
+        studentId: c.student_id,
+        date: c.date,
+        time: c.time,
+        status: c.status,
+        notes: c.notes
+      } as ClassSession;
+    },
+    async delete(id: string) {
+      const { error } = await supabase.from('classes').delete().eq('id', id);
+      if (error) throw error;
     }
   }
 };

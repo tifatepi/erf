@@ -123,6 +123,15 @@ const App: React.FC = () => {
     }
   };
 
+  const updateClassSession = async (id: string, updates: Partial<ClassSession>) => {
+    try {
+      const updated = await db.classes.update(id, updates);
+      setClasses(prev => prev.map(c => c.id === id ? updated : c));
+    } catch (err) {
+      alert("Erro ao atualizar aula");
+    }
+  };
+
   const renderContent = () => {
     if (isDataSyncing) {
       return (
@@ -143,7 +152,7 @@ const App: React.FC = () => {
       case 'financial':
         return <FinancialList payments={payments} students={students} onAddPayment={addPayment} />;
       case 'calendar':
-        return <CalendarView classes={classes} students={students} onAddClass={addClassSession} />;
+        return <CalendarView classes={classes} students={students} onAddClass={addClassSession} onUpdateClass={updateClassSession} />;
       case 'academic':
         return <AcademicView students={students} />;
       case 'users':
