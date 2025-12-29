@@ -23,6 +23,24 @@ const TeacherList: React.FC<TeacherListProps> = ({ teachers, onAdd, onUpdate, on
     phone: ''
   });
 
+  // Funções de Máscara
+  const maskCPF = (value: string) => {
+    return value
+      .replace(/\D/g, '')
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d{1,2})/, '$1-$2')
+      .replace(/(-\d{2})\d+?$/, '$1');
+  };
+
+  const maskPhone = (value: string) => {
+    return value
+      .replace(/\D/g, '')
+      .replace(/(\d{2})(\d)/, '($1) $2')
+      .replace(/(\d{5})(\d)/, '$1-$2')
+      .replace(/(-\d{4})\d+?$/, '$1');
+  };
+
   const filtered = teachers.filter(t => 
     t.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     t.cpf.includes(searchTerm)
@@ -182,9 +200,10 @@ const TeacherList: React.FC<TeacherListProps> = ({ teachers, onAdd, onUpdate, on
                   <input 
                     type="text"
                     placeholder="000.000.000-00"
+                    maxLength={14}
                     className="w-full pl-12 pr-5 py-3.5 bg-slate-50 border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
                     value={formData.cpf}
-                    onChange={e => setFormData({...formData, cpf: e.target.value})}
+                    onChange={e => setFormData({...formData, cpf: maskCPF(e.target.value)})}
                   />
                 </div>
               </div>
@@ -210,9 +229,10 @@ const TeacherList: React.FC<TeacherListProps> = ({ teachers, onAdd, onUpdate, on
                   <input 
                     type="text"
                     placeholder="(00) 00000-0000"
+                    maxLength={15}
                     className="w-full pl-12 pr-5 py-3.5 bg-slate-50 border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
                     value={formData.phone}
-                    onChange={e => setFormData({...formData, phone: e.target.value})}
+                    onChange={e => setFormData({...formData, phone: maskPhone(e.target.value)})}
                   />
                 </div>
               </div>
