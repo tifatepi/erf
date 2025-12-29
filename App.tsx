@@ -175,9 +175,18 @@ const App: React.FC = () => {
   const addPayment = async (newPayment: Partial<Payment>) => {
     try {
       const created = await db.payments.create(newPayment);
-      setPayments(prev => [...prev, created]);
+      setPayments(prev => [created, ...prev]);
     } catch (err) {
-      alert("Erro ao processar pagamento");
+      alert("Erro ao processar lançamento financeiro.");
+    }
+  };
+
+  const updatePayment = async (id: string, updates: Partial<Payment>) => {
+    try {
+      const updated = await db.payments.update(id, updates);
+      setPayments(prev => prev.map(p => p.id === id ? updated : p));
+    } catch (err) {
+      alert("Erro ao atualizar pagamento.");
     }
   };
 
@@ -235,7 +244,7 @@ const App: React.FC = () => {
       case 'students':
         return <StudentList students={students} institutions={institutions} onAddStudent={addStudent} onUpdateStudent={updateStudent} />;
       case 'financial':
-        return <FinancialList payments={payments} students={students} onAddPayment={addPayment} />;
+        return <FinancialList payments={payments} students={students} onAddPayment={addPayment} onUpdatePayment={updatePayment} />;
       case 'calendar':
         return (
           <CalendarView 

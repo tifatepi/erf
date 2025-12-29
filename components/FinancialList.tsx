@@ -15,18 +15,22 @@ import {
   Printer, 
   GraduationCap,
   Share2,
-  Loader2
+  Loader2,
+  HandCoins,
+  History,
+  RotateCcw
 } from 'lucide-react';
 
 interface FinancialListProps {
   payments: Payment[];
   students: Student[];
   onAddPayment: (payment: Partial<Payment>) => Promise<void>;
+  onUpdatePayment: (id: string, updates: Partial<Payment>) => Promise<void>;
 }
 
 declare const html2pdf: any;
 
-const FinancialList: React.FC<FinancialListProps> = ({ payments, students, onAddPayment }) => {
+const FinancialList: React.FC<FinancialListProps> = ({ payments, students, onAddPayment, onUpdatePayment }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
@@ -42,7 +46,7 @@ const FinancialList: React.FC<FinancialListProps> = ({ payments, students, onAdd
     description: 'Janeiro', 
     date: today,
     dueDate: today,
-    status: 'PAID' as 'PAID' | 'PENDING' | 'OVERDUE'
+    status: 'PENDING' as 'PAID' | 'PENDING' | 'OVERDUE'
   });
 
   const months = [
@@ -50,7 +54,7 @@ const FinancialList: React.FC<FinancialListProps> = ({ payments, students, onAdd
     'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
   ];
 
-  const getStudentName = (id: string) => students.find(s => s.id === id)?.name || 'Desconhecido';
+  const getStudentName = (id: string) => students.find(s => String(s.id) === String(id))?.name || 'Desconhecido';
 
   const statusStyles = {
     PAID: { bg: 'bg-emerald-50', text: 'text-emerald-700', icon: <CheckCircle2 size={12} />, label: 'Pago' },
@@ -71,16 +75,45 @@ const FinancialList: React.FC<FinancialListProps> = ({ payments, students, onAdd
         studentId: newPay.studentId,
         amount: newPay.amount,
         dueDate: newPay.dueDate,
-        paymentDate: newPay.date,
+        // Só envia paymentDate se o status inicial for PAID
+        paymentDate: newPay.status === 'PAID' ? newPay.date : undefined,
         description: `Mensalidade ${newPay.description}`,
         status: newPay.status
       });
       setIsModalOpen(false);
-      setNewPay({ studentId: '', amount: 0, description: 'Janeiro', date: today, dueDate: today, status: 'PAID' });
+      setNewPay({ studentId: '', amount: 0, description: 'Janeiro', date: today, dueDate: today, status: 'PENDING' });
     } catch (err) {
       alert("Erro ao salvar lançamento.");
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleSetPaid = async (payment: Payment) => {
+    const confirmPayment = window.confirm(`Confirmar recebimento de ${formatCurrency(payment.amount)} para ${getStudentName(payment.studentId)}?`);
+    if (!confirmPayment) return;
+
+    try {
+      await onUpdatePayment(payment.id, {
+        status: 'PAID',
+        paymentDate: today
+      });
+    } catch (err) {
+      alert("Erro ao liquidar pagamento.");
+    }
+  };
+
+  const handleSetPending = async (payment: Payment) => {
+    const confirmPending = window.confirm(`Deseja estornar este pagamento e torná-lo PENDENTE novamente?`);
+    if (!confirmPending) return;
+
+    try {
+      await onUpdatePayment(payment.id, {
+        status: 'PENDING',
+        paymentDate: undefined // No Supabase isso deve limpar o campo
+      });
+    } catch (err) {
+      alert("Erro ao atualizar para pendente.");
     }
   };
 
@@ -114,7 +147,6 @@ const FinancialList: React.FC<FinancialListProps> = ({ payments, students, onAdd
         scale: 2, 
         useCORS: true, 
         letterRendering: true,
-        // Ignora problemas de parsing de cores modernas
         logging: false 
       },
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
@@ -140,7 +172,7 @@ const FinancialList: React.FC<FinancialListProps> = ({ payments, students, onAdd
       }
     } catch (error) {
       console.error('Erro ao gerar/compartilhar PDF:', error);
-      alert('Houve um problema ao gerar o PDF. Tente usar o botão de Imprimir e salvar como PDF.');
+      alert('Houve um problema ao gerar o PDF.');
     } finally {
       setIsGeneratingPDF(false);
     }
@@ -156,33 +188,18 @@ const FinancialList: React.FC<FinancialListProps> = ({ payments, students, onAdd
   };
 
   const formatDateWithTime = (dateStr?: string) => {
-    const date = dateStr ? new Date(dateStr) : new Date();
-    const now = new Date();
-    const displayDate = dateStr ? new Date(dateStr + 'T12:00:00') : now;
-    return `${displayDate.toLocaleDateString('pt-BR')} às ${now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
+    if (!dateStr) return 'Não pago';
+    const date = new Date(dateStr + 'T12:00:00');
+    return date.toLocaleDateString('pt-BR');
   };
 
   return (
     <div className="space-y-6 animate-fade-in">
       <style>{`
-        /* Cores Fixas para compatibilidade com PDF (Substituindo oklch por HEX) */
         #printable-receipt {
           background-color: #ffffff !important;
           color: #1e293b !important;
         }
-        #printable-receipt .text-slate-900 { color: #0f172a !important; }
-        #printable-receipt .text-slate-800 { color: #1e293b !important; }
-        #printable-receipt .text-slate-700 { color: #334155 !important; }
-        #printable-receipt .text-slate-500 { color: #64748b !important; }
-        #printable-receipt .text-slate-400 { color: #94a3b8 !important; }
-        #printable-receipt .text-slate-300 { color: #cbd5e1 !important; }
-        #printable-receipt .bg-slate-900 { background-color: #0f172a !important; }
-        #printable-receipt .border-slate-900 { border-color: #0f172a !important; }
-        #printable-receipt .border-slate-200 { border-color: #e2e8f0 !important; }
-        #printable-receipt .border-slate-100 { border-color: #f1f5f9 !important; }
-        #printable-receipt .text-indigo-600 { color: #4f46e5 !important; }
-        #printable-receipt .text-indigo-400 { color: #818cf8 !important; }
-
         @media print {
           body * { visibility: hidden; }
           #printable-receipt, #printable-receipt * { visibility: visible; }
@@ -202,14 +219,14 @@ const FinancialList: React.FC<FinancialListProps> = ({ payments, students, onAdd
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">Fluxo Financeiro</h2>
-          <p className="text-slate-500 font-medium text-sm">Controle de recebimentos e mensalidades.</p>
+          <p className="text-slate-500 font-medium text-sm">Controle as mensalidades de forma eficiente.</p>
         </div>
         <button 
           onClick={() => setIsModalOpen(true)}
-          className="bg-emerald-600 text-white px-6 py-3 rounded-2xl text-sm font-bold hover:bg-emerald-700 shadow-xl shadow-emerald-100 flex items-center gap-2 justify-center transition-all active:scale-95"
+          className="bg-indigo-600 text-white px-6 py-3.5 rounded-2xl text-sm font-bold hover:bg-indigo-700 shadow-xl shadow-indigo-100 flex items-center gap-2 justify-center transition-all active:scale-95"
         >
           <DollarSign size={18} />
-          Lançar Receita
+          Novo Lançamento
         </button>
       </div>
 
@@ -227,28 +244,30 @@ const FinancialList: React.FC<FinancialListProps> = ({ payments, students, onAdd
           <div className="bg-amber-500/10 w-12 h-12 rounded-2xl flex items-center justify-center text-amber-600 mb-4">
             <Clock size={24} />
           </div>
-          <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest">A Receber</p>
+          <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest">Pendente</p>
           <h3 className="text-xl md:text-2xl font-black text-slate-900 mt-1">
-            {formatCurrency(payments.filter(p => p.status !== 'PAID').reduce((acc, p) => acc + p.amount, 0))}
+            {formatCurrency(payments.filter(p => p.status === 'PENDING').reduce((acc, p) => acc + p.amount, 0))}
           </h3>
         </div>
-        <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 hidden sm:block">
-          <div className="bg-indigo-500/10 w-12 h-12 rounded-2xl flex items-center justify-center text-indigo-600 mb-4">
-            <Info size={24} />
+        <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
+          <div className="bg-rose-500/10 w-12 h-12 rounded-2xl flex items-center justify-center text-rose-600 mb-4">
+            <AlertCircle size={24} />
           </div>
-          <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest">Total Registros</p>
-          <h3 className="text-xl md:text-2xl font-black text-slate-900 mt-1">{payments.length}</h3>
+          <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest">Atrasado</p>
+          <h3 className="text-xl md:text-2xl font-black text-slate-900 mt-1">
+            {formatCurrency(payments.filter(p => p.status === 'OVERDUE').reduce((acc, p) => acc + p.amount, 0))}
+          </h3>
         </div>
       </div>
 
-      <div className="bg-white rounded-[1.5rem] md:rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden">
         <div className="p-4 md:p-6 border-b border-slate-50">
           <div className="relative max-w-md w-full">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
             <input 
               type="text" 
               placeholder="Buscar por aluno ou mês..." 
-              className="w-full pl-12 pr-6 py-3 bg-slate-50 border-none rounded-2xl text-sm font-medium focus:ring-2 focus:ring-emerald-500 outline-none"
+              className="w-full pl-12 pr-6 py-3.5 bg-slate-50 border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -256,57 +275,67 @@ const FinancialList: React.FC<FinancialListProps> = ({ payments, students, onAdd
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left min-w-[700px]">
+          <table className="w-full text-left min-w-[800px]">
             <thead>
               <tr className="bg-slate-50/50 text-slate-400 text-[10px] font-black uppercase tracking-[0.15em]">
-                <th className="px-6 md:px-8 py-5">Aluno</th>
-                <th className="px-6 md:px-8 py-5">Referência</th>
-                <th className="px-6 md:px-8 py-5 text-right">Valor</th>
-                <th className="px-6 md:px-8 py-5">Vencimento</th>
-                <th className="px-6 md:px-8 py-5 text-center">Status</th>
-                <th className="px-6 md:px-8 py-5 text-center">Ações</th>
+                <th className="px-8 py-5">Aluno</th>
+                <th className="px-8 py-5">Referência</th>
+                <th className="px-8 py-5 text-right">Valor</th>
+                <th className="px-8 py-5">Vencimento</th>
+                <th className="px-8 py-5">Dt. Pagamento</th>
+                <th className="px-8 py-5 text-center">Status</th>
+                <th className="px-8 py-5 text-center">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50 text-sm">
-              {filteredPayments.map((payment, idx) => {
+              {filteredPayments.map((payment) => {
                 const style = statusStyles[payment.status] || statusStyles.PENDING;
                 return (
-                  <tr key={payment.id || idx} className="hover:bg-slate-50/80 transition-all group">
-                    <td className="px-6 md:px-8 py-5">
-                      <p className="font-bold text-slate-900 truncate max-w-[150px]">{getStudentName(payment.studentId)}</p>
+                  <tr key={payment.id} className="hover:bg-slate-50/80 transition-all group">
+                    <td className="px-8 py-5 font-bold text-slate-900">{getStudentName(payment.studentId)}</td>
+                    <td className="px-8 py-5 font-medium text-slate-500">{payment.description}</td>
+                    <td className="px-8 py-5 text-right font-black text-slate-900">{formatCurrency(payment.amount)}</td>
+                    <td className="px-8 py-5 font-medium text-slate-500">
+                      {new Date(payment.dueDate + 'T12:00:00').toLocaleDateString('pt-BR')}
                     </td>
-                    <td className="px-6 md:px-8 py-5">
-                      <p className="font-medium text-slate-500 truncate">{payment.description}</p>
+                    <td className="px-8 py-5 font-bold text-indigo-600">
+                      {payment.paymentDate ? new Date(payment.paymentDate + 'T12:00:00').toLocaleDateString('pt-BR') : '-'}
                     </td>
-                    <td className="px-6 md:px-8 py-5 text-right">
-                      <p className="font-black text-slate-900 whitespace-nowrap">{formatCurrency(payment.amount)}</p>
-                    </td>
-                    <td className="px-6 md:px-8 py-5">
-                      <div className="flex items-center gap-2 text-slate-500 font-medium whitespace-nowrap">
-                        <CalendarIcon size={14} className="opacity-40 shrink-0" />
-                        {new Date(payment.dueDate + 'T12:00:00').toLocaleDateString('pt-BR')}
-                      </div>
-                    </td>
-                    <td className="px-6 md:px-8 py-5">
+                    <td className="px-8 py-5">
                       <div className="flex justify-center">
-                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full font-black text-[9px] uppercase border whitespace-nowrap ${style.bg} ${style.text}`}>
+                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full font-black text-[9px] uppercase border ${style.bg} ${style.text}`}>
                           {style.icon}
                           {style.label}
                         </span>
                       </div>
                     </td>
-                    <td className="px-6 md:px-8 py-5">
-                      <div className="flex justify-center">
+                    <td className="px-8 py-5">
+                      <div className="flex items-center justify-center gap-2">
                         {payment.status === 'PAID' ? (
-                          <button 
-                            onClick={() => handleOpenReceipt(payment)}
-                            className="p-2 text-indigo-500 hover:bg-indigo-50 rounded-xl transition-all"
-                            title="Gerar Recibo"
-                          >
-                            <FileText size={18} />
-                          </button>
+                          <>
+                            <button 
+                              onClick={() => handleOpenReceipt(payment)}
+                              className="p-2 text-indigo-500 hover:bg-indigo-50 rounded-xl transition-all"
+                              title="Ver Recibo"
+                            >
+                              <FileText size={18} />
+                            </button>
+                            <button 
+                              onClick={() => handleSetPending(payment)}
+                              className="p-2 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-xl transition-all"
+                              title="Tornar Pendente"
+                            >
+                              <RotateCcw size={18} />
+                            </button>
+                          </>
                         ) : (
-                          <span className="text-slate-200"><FileText size={18} /></span>
+                          <button 
+                            onClick={() => handleSetPaid(payment)}
+                            className="p-3 bg-emerald-500 text-white rounded-xl shadow-lg shadow-emerald-100 hover:bg-emerald-600 transition-all active:scale-90 flex items-center gap-2 text-[10px] font-black uppercase"
+                          >
+                            <HandCoins size={14} />
+                            Receber
+                          </button>
                         )}
                       </div>
                     </td>
@@ -318,27 +347,30 @@ const FinancialList: React.FC<FinancialListProps> = ({ payments, students, onAdd
         </div>
       </div>
 
-      {/* Modal Lançar Receita */}
+      {/* Modal Lançamento */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-900/40 backdrop-blur-md p-2 md:p-4 animate-fade-in">
-          <div className="bg-white rounded-3xl md:rounded-[2.5rem] shadow-2xl w-full max-w-lg max-h-[95vh] overflow-y-auto border border-white/20">
-            <div className="p-6 md:p-8 border-b border-slate-50 flex items-center justify-between bg-emerald-600 text-white sticky top-0 z-10">
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-900/40 backdrop-blur-md p-4 animate-fade-in">
+          <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-lg border border-white/20">
+            <div className="p-8 border-b border-slate-50 flex items-center justify-between bg-indigo-600 text-white rounded-t-[2.5rem]">
               <div>
-                <h3 className="font-black text-xl md:text-2xl tracking-tight">Nova Receita</h3>
-                <p className="text-emerald-100 text-[10px] font-bold uppercase tracking-widest mt-1">Lançamento financeiro</p>
+                <h3 className="font-black text-2xl tracking-tight">Novo Lançamento</h3>
+                <p className="text-indigo-100 text-[10px] font-bold uppercase tracking-widest mt-1">Gestão de Mensalidades</p>
               </div>
               <button onClick={() => setIsModalOpen(false)} className="hover:bg-white/10 p-2 rounded-2xl transition-all">
                 <X size={24} />
               </button>
             </div>
             
-            <form onSubmit={handleSave} className="p-6 md:p-8 space-y-4">
+            <form onSubmit={handleSave} className="p-8 space-y-5">
               <div className="space-y-1">
                 <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Aluno</label>
                 <select 
-                  className="w-full px-5 py-3.5 bg-slate-50 border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-emerald-500 outline-none transition-all appearance-none"
+                  className="w-full px-5 py-4 bg-slate-50 border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none appearance-none"
                   value={newPay.studentId}
-                  onChange={e => setNewPay({...newPay, studentId: e.target.value})}
+                  onChange={e => {
+                    const student = students.find(s => String(s.id) === e.target.value);
+                    setNewPay({...newPay, studentId: e.target.value, amount: student?.monthlyFee || 0});
+                  }}
                   required
                 >
                   <option value="">Selecione um aluno...</option>
@@ -346,11 +378,11 @@ const FinancialList: React.FC<FinancialListProps> = ({ payments, students, onAdd
                 </select>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Referente ao Mês</label>
+                  <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Mês Ref.</label>
                   <select 
-                    className="w-full px-5 py-3.5 bg-slate-50 border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-emerald-500 outline-none transition-all appearance-none"
+                    className="w-full px-5 py-4 bg-slate-50 border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none"
                     value={newPay.description}
                     onChange={e => setNewPay({...newPay, description: e.target.value})}
                   >
@@ -359,36 +391,11 @@ const FinancialList: React.FC<FinancialListProps> = ({ payments, students, onAdd
                 </div>
                 <div className="space-y-1">
                   <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Valor (R$)</label>
-                  <div className="relative">
-                    <span className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">R$</span>
-                    <input 
-                      type="number" step="0.01" required
-                      placeholder="0,00"
-                      className="w-full pl-12 pr-5 py-3.5 bg-slate-50 border-none rounded-2xl text-sm font-black focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
-                      value={newPay.amount || ''}
-                      onChange={e => setNewPay({...newPay, amount: parseFloat(e.target.value)})}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Data Pagamento</label>
                   <input 
-                    type="date" required
-                    className="w-full px-5 py-3.5 bg-slate-50 border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
-                    value={newPay.date}
-                    onChange={e => setNewPay({...newPay, date: e.target.value})}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Vencimento</label>
-                  <input 
-                    type="date" required
-                    className="w-full px-5 py-3.5 bg-slate-50 border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-                    value={newPay.dueDate}
-                    onChange={e => setNewPay({...newPay, dueDate: e.target.value})}
+                    type="number" step="0.01" required
+                    className="w-full px-5 py-4 bg-slate-50 border-none rounded-2xl text-sm font-black focus:ring-2 focus:ring-indigo-500 outline-none"
+                    value={newPay.amount || ''}
+                    onChange={e => setNewPay({...newPay, amount: parseFloat(e.target.value)})}
                   />
                 </div>
               </div>
@@ -403,8 +410,8 @@ const FinancialList: React.FC<FinancialListProps> = ({ payments, students, onAdd
                       onClick={() => setNewPay({...newPay, status: s})}
                       className={`py-3 rounded-xl text-[9px] font-black uppercase transition-all border ${
                         newPay.status === s 
-                        ? 'bg-emerald-600 border-emerald-600 text-white shadow-lg' 
-                        : 'bg-white border-slate-100 text-slate-400 hover:border-emerald-200'
+                        ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg' 
+                        : 'bg-white border-slate-100 text-slate-400'
                       }`}
                     >
                       {statusStyles[s].label}
@@ -413,27 +420,32 @@ const FinancialList: React.FC<FinancialListProps> = ({ payments, students, onAdd
                 </div>
               </div>
 
-              <div className="pt-6 flex flex-col md:flex-row gap-3">
-                <button 
-                  type="button" 
-                  onClick={() => setIsModalOpen(false)}
-                  className="order-2 md:order-1 flex-1 px-6 py-4 bg-slate-100 text-slate-600 rounded-2xl text-sm font-black hover:bg-slate-200 transition-all"
-                >
-                  Cancelar
-                </button>
-                <button 
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="order-1 md:order-2 flex-1 px-6 py-4 bg-emerald-600 text-white rounded-2xl text-sm font-black hover:bg-emerald-700 shadow-xl shadow-emerald-100 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  {isSubmitting ? (
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  ) : (
-                    <>
-                      <Save size={18} />
-                      Confirmar
-                    </>
-                  )}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className={`text-[11px] font-black uppercase tracking-widest ml-1 ${newPay.status === 'PAID' ? 'text-slate-400' : 'text-slate-200'}`}>Data Pagamento</label>
+                  <input 
+                    type="date" 
+                    disabled={newPay.status !== 'PAID'}
+                    className={`w-full px-5 py-4 border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none transition-all ${newPay.status === 'PAID' ? 'bg-slate-50' : 'bg-slate-100 cursor-not-allowed opacity-50'}`}
+                    value={newPay.date}
+                    onChange={e => setNewPay({...newPay, date: e.target.value})}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Vencimento</label>
+                  <input 
+                    type="date" required
+                    className="w-full px-5 py-4 bg-slate-50 border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none"
+                    value={newPay.dueDate}
+                    onChange={e => setNewPay({...newPay, dueDate: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              <div className="pt-6 flex gap-3">
+                <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 px-6 py-4 bg-slate-100 text-slate-600 rounded-2xl text-sm font-black hover:bg-slate-200 transition-all">Cancelar</button>
+                <button type="submit" disabled={isSubmitting} className="flex-1 px-6 py-4 bg-indigo-600 text-white rounded-2xl text-sm font-black hover:bg-indigo-700 shadow-xl shadow-indigo-100 disabled:opacity-50">
+                  {isSubmitting ? 'Gravando...' : 'Lançar'}
                 </button>
               </div>
             </form>
@@ -441,97 +453,70 @@ const FinancialList: React.FC<FinancialListProps> = ({ payments, students, onAdd
         </div>
       )}
 
-      {/* Modal Visualizar Recibo */}
+      {/* Modal Recibo */}
       {isReceiptOpen && selectedPayment && (
-        <div className="fixed inset-0 z-[150] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-2 md:p-4 animate-fade-in">
-          <div className="bg-white rounded-[1.5rem] md:rounded-[2rem] shadow-2xl w-full max-w-2xl h-[90vh] flex flex-col overflow-hidden border border-slate-200">
-            {/* Header Sticky no topo do modal */}
-            <div className="p-4 md:p-6 border-b border-slate-100 flex items-center justify-between no-print bg-slate-50 shrink-0 sticky top-0 z-20">
-              <h3 className="font-black text-slate-900 text-xs md:text-base truncate pr-2">Recibo #{selectedPayment.id.padStart(6, '0')}</h3>
-              <div className="flex items-center gap-1.5 md:gap-2 flex-wrap justify-end">
-                <button 
-                  onClick={handleSharePDF}
-                  disabled={isGeneratingPDF}
-                  className="bg-indigo-600 text-white px-2.5 md:px-4 py-2 rounded-xl text-[9px] md:text-xs font-black flex items-center gap-1.5 md:gap-2 hover:bg-indigo-700 transition-all active:scale-95 disabled:opacity-50 whitespace-nowrap"
-                >
-                  {isGeneratingPDF ? <Loader2 size={14} className="animate-spin" /> : <Share2 size={14} />}
-                  <span>{isGeneratingPDF ? '...' : 'Compartilhar'}</span>
+        <div className="fixed inset-0 z-[150] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 animate-fade-in">
+          <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-2xl h-[90vh] flex flex-col overflow-hidden">
+            <div className="p-6 border-b border-slate-100 flex items-center justify-between no-print bg-slate-50">
+              <h3 className="font-black text-slate-900">Recibo #{selectedPayment.id}</h3>
+              <div className="flex items-center gap-2">
+                <button onClick={handleSharePDF} disabled={isGeneratingPDF} className="bg-indigo-600 text-white px-4 py-2 rounded-xl text-xs font-black flex items-center gap-2 hover:bg-indigo-700 transition-all active:scale-95 disabled:opacity-50">
+                  {isGeneratingPDF ? <Loader2 size={14} className="animate-spin" /> : <Share2 size={14} />} Compartilhar
                 </button>
-                <button 
-                  onClick={handlePrint}
-                  className="bg-slate-900 text-white px-2.5 md:px-4 py-2 rounded-xl text-[9px] md:text-xs font-black flex items-center gap-1.5 md:gap-2 hover:bg-slate-800 transition-all active:scale-95 whitespace-nowrap"
-                >
-                  <Printer size={14} /> 
-                  <span>Imprimir</span>
+                <button onClick={handlePrint} className="bg-slate-900 text-white px-4 py-2 rounded-xl text-xs font-black flex items-center gap-2 hover:bg-slate-800 transition-all active:scale-95">
+                  <Printer size={14} /> Imprimir
                 </button>
-                <button onClick={() => setIsReceiptOpen(false)} className="p-1.5 md:p-2 hover:bg-slate-200 rounded-xl transition-all text-slate-400 hover:text-slate-900 shrink-0">
-                  <X size={20} />
-                </button>
+                <button onClick={() => setIsReceiptOpen(false)} className="p-2 hover:bg-slate-200 rounded-xl transition-all text-slate-400"><X size={20} /></button>
               </div>
             </div>
 
-            {/* Conteúdo rolável */}
-            <div className="flex-1 overflow-y-auto bg-slate-100/50 p-4 md:p-12">
-              <div id="printable-receipt" className="text-slate-800 bg-white relative p-8 md:p-16 shadow-lg mx-auto max-w-[210mm] min-h-[297mm]">
-                {/* Marca d'água discreta */}
-                <div className="absolute inset-0 flex items-center justify-center opacity-[0.03] pointer-events-none rotate-12 overflow-hidden">
-                  <GraduationCap size={400} />
+            <div className="flex-1 overflow-y-auto p-12 bg-slate-50/50">
+              <div id="printable-receipt" className="text-slate-800 bg-white relative p-16 shadow-lg mx-auto max-w-[210mm]">
+                <div className="flex justify-between items-start mb-12 border-b-2 border-slate-900 pb-8">
+                  <div className="flex items-center gap-4">
+                    <div className="bg-slate-900 p-3 rounded-2xl">
+                      <GraduationCap className="text-white" size={24} />
+                    </div>
+                    <div>
+                      <h1 className="text-2xl font-black tracking-tighter uppercase leading-none">EduBoost</h1>
+                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">Reforço Escolar Especializado</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <h2 className="text-3xl font-black text-slate-900 mb-1">RECIBO</h2>
+                    <p className="text-sm font-bold text-slate-400">ID Lançamento: {selectedPayment.id}</p>
+                  </div>
                 </div>
 
-                <div className="relative z-10">
-                  <div className="flex justify-between items-start mb-8 md:mb-12 border-b-2 border-slate-900 pb-6 md:pb-8">
-                    <div className="flex items-center gap-3 md:gap-4">
-                      <div className="bg-slate-900 p-2 md:p-3 rounded-2xl">
-                        <GraduationCap className="text-white" size={24} />
-                      </div>
-                      <div>
-                        <h1 className="text-xl md:text-2xl font-black tracking-tighter uppercase leading-none">EduBoost</h1>
-                        <p className="text-[8px] md:text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">Reforço Escolar</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <h2 className="text-2xl md:text-3xl font-black text-slate-900 mb-0.5 md:mb-1">RECIBO</h2>
-                      <p className="text-xs md:text-sm font-bold text-slate-400">Nº {selectedPayment.id.padStart(6, '0')}</p>
-                    </div>
+                <div className="space-y-8 mb-16">
+                  <div className="flex items-baseline gap-4 border-b border-slate-100 pb-2">
+                    <span className="text-xs font-black uppercase text-slate-400">Valor Recebido:</span>
+                    <span className="text-2xl font-black text-slate-900">{formatCurrency(selectedPayment.amount)}</span>
                   </div>
 
-                  <div className="space-y-6 md:space-y-8 mb-12 md:mb-16">
-                    <div className="flex items-baseline gap-4 border-b border-slate-100 pb-2">
-                      <span className="text-[10px] md:text-xs font-black uppercase text-slate-400 shrink-0">Valor:</span>
-                      <span className="text-xl md:text-2xl font-black text-slate-900">{formatCurrency(selectedPayment.amount)}</span>
-                    </div>
+                  <p className="text-lg leading-relaxed text-slate-700">
+                    Declaramos para os devidos fins que recebemos de <span className="font-black border-b-2 border-slate-200 text-slate-900">{getStudentName(selectedPayment.studentId)}</span>, 
+                    a importância supra referente ao pagamento de <span className="font-black italic text-slate-900">{selectedPayment.description}</span>.
+                  </p>
 
-                    <p className="text-sm md:text-lg leading-relaxed text-slate-700">
-                      Recebemos de <span className="font-black border-b-2 border-slate-200 text-slate-900">{getStudentName(selectedPayment.studentId)}</span>, 
-                      a quantia supramencionada referente a <span className="font-black italic text-slate-900">{selectedPayment.description}</span>, 
-                      pelo que firmamos o presente recibo dando plena quitação.
+                  <div className="flex flex-col gap-1 text-sm text-slate-500">
+                    <p className="font-bold flex items-center gap-2">
+                      <CalendarIcon size={14} className="text-indigo-400" /> 
+                      Data da Operação: <span className="text-slate-900">{formatDateWithTime(selectedPayment.paymentDate)}</span>
                     </p>
+                  </div>
+                </div>
 
-                    <div className="flex flex-col gap-1 text-xs md:text-sm text-slate-500">
-                      <p className="font-bold flex items-center gap-2">
-                        <CalendarIcon size={14} className="text-indigo-400" /> 
-                        Data do Pagamento: <span className="text-slate-900">{formatDateWithTime(selectedPayment.paymentDate)}</span>
-                      </p>
-                      <p className="text-[9px] md:text-[10px] uppercase font-black tracking-widest mt-2">Local de Emissão: São Paulo - SP</p>
+                <div className="mt-24 grid grid-cols-2 gap-12">
+                  <div className="text-center">
+                    <div className="border-t-2 border-slate-900 pt-4">
+                      <p className="text-xs font-black uppercase tracking-widest">Responsável EduBoost</p>
                     </div>
                   </div>
-
-                  <div className="mt-16 md:mt-24 grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
-                    <div className="text-center">
-                      <div className="border-t-2 border-slate-900 pt-3 md:pt-4">
-                        <p className="text-[10px] md:text-xs font-black uppercase tracking-widest">Responsável EduBoost</p>
-                        <p className="text-[8px] md:text-[10px] text-slate-400 mt-1">CNPJ: 00.000.000/0001-00</p>
-                      </div>
+                  <div className="text-center">
+                    <div className="border-t border-slate-200 pt-4">
+                      <p className="text-xs font-black uppercase tracking-widest text-slate-300">Carimbo / Assinatura</p>
                     </div>
-                    <div className="text-center">
-                      <div className="border-t border-slate-200 pt-3 md:pt-4">
-                        <p className="text-[10px] md:text-xs font-black uppercase tracking-widest">Assinatura do Pagador</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-16 md:mt-20 pt-8 border-t border-slate-50 text-center">
-                    <p className="text-[8px] md:text-[9px] font-black text-slate-300 uppercase tracking-[0.3em]">Obrigado pela confiança em nosso trabalho pedagógico</p>
                   </div>
                 </div>
               </div>

@@ -79,6 +79,7 @@ export const db = {
         name: inst.name,
         cnpj: inst.cnpj,
         contact_name: inst.contactName,
+        // Fixed: Property 'contact_phone' does not exist on type 'Partial<Institution>'. Using contactPhone instead.
         contact_phone: inst.contactPhone
       }]).select();
       if (error) throw error;
@@ -273,6 +274,26 @@ export const db = {
       
       if (error) throw error;
       
+      const p = data[0];
+      return {
+        id: String(p.id),
+        studentId: String(p.student_id),
+        amount: Number(p.amount),
+        dueDate: p.due_date,
+        paymentDate: p.payment_date,
+        status: p.status,
+        description: p.description
+      } as Payment;
+    },
+    async update(id: string, updates: Partial<Payment>) {
+      const { data, error } = await supabase.from('payments').update({
+        status: updates.status,
+        payment_date: updates.paymentDate,
+        amount: updates.amount,
+        description: updates.description,
+        due_date: updates.dueDate
+      }).eq('id', id).select();
+      if (error) throw error;
       const p = data[0];
       return {
         id: String(p.id),
