@@ -1,0 +1,53 @@
+
+export enum UserRole {
+  ADMIN = 'ADMIN',
+  PROFESSOR = 'PROFESSOR',
+  RESPONSAVEL = 'RESPONSAVEL',
+  ALUNO = 'ALUNO'
+}
+
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+  avatar?: string;
+}
+
+export interface Student {
+  id: string;
+  name: string;
+  age: number;
+  grade: string;
+  school: string;
+  guardianId: string;
+  subjects: string[];
+}
+
+export interface Payment {
+  id: string;
+  studentId: string;
+  amount: number;
+  dueDate: string;
+  status: 'PAID' | 'PENDING' | 'OVERDUE';
+  description: string;
+}
+
+export interface ClassSession {
+  id: string;
+  subject: string;
+  teacherId: string;
+  studentId: string;
+  date: string;
+  time: string;
+  status: 'SCHEDULED' | 'COMPLETED' | 'CANCELLED';
+  notes?: string;
+}
+
+export interface AcademicPerformance {
+  studentId: string;
+  subject: string;
+  grade: number;
+  date: string;
+  observation: string;
+}

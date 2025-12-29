@@ -1,0 +1,7 @@
+{
+  "name": "EduBoost - Gestão de Reforço Escolar",
+  "description": "Uma plataforma completa para gestão de escolas de reforço escolar, integrando administradores, professores e responsáveis com dashboards intuitivos e relatórios inteligentes.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
