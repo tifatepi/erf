@@ -3,6 +3,30 @@ import { supabase } from '../lib/supabase';
 import { Student, Payment, ClassSession, User, UserRole } from '../types';
 
 export const db = {
+  auth: {
+    async login(email: string, password: string): Promise<User | null> {
+      // Busca direta na tabela profiles usando e-mail e senha
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('email', email)
+        .eq('password', password)
+        .maybeSingle();
+      
+      if (error || !data) {
+        console.error("Erro ou falha no login:", error);
+        return null;
+      }
+      
+      return {
+        id: data.id,
+        name: data.name,
+        email: data.email,
+        role: data.role as UserRole,
+        avatar: data.avatar_url
+      };
+    }
+  },
   profiles: {
     async list() {
       const { data, error } = await supabase
@@ -19,40 +43,22 @@ export const db = {
         avatar: profile.avatar_url
       })) as User[];
     },
-    async getByEmail(email: string) {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('email', email)
-        .maybeSingle();
-      
-      if (error || !data) return null;
-      
-      return {
-        id: data.id,
-        name: data.name,
-        email: data.email,
-        role: data.role as UserRole,
-        avatar: data.avatar_url
-      } as User;
-    },
-    async create(profile: Partial<User>) {
-      // Geramos o ID no cliente para evitar o erro de restrição NOT NULL no banco
-      const profileId = crypto.randomUUID();
-      
+    async create(profile: Partial<User & { password?: string }>) {
+      // Geramos um UUID para o ID caso o banco não gere, e definimos senha padrão
       const { data, error } = await supabase
         .from('profiles')
         .insert([{
-          id: profileId,
+          id: crypto.randomUUID(),
           name: profile.name,
           email: profile.email,
           role: profile.role,
+          password: profile.password || '123456',
           avatar_url: profile.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(profile.name || 'user')}`
         }])
         .select();
       
       if (error) {
-        console.error("Erro Supabase (Profiles):", error);
+        console.error("Erro ao criar perfil:", error);
         throw error;
       }
       
@@ -65,13 +71,14 @@ export const db = {
         avatar: created.avatar_url
       } as User;
     },
-    async update(id: string, updates: Partial<User>) {
+    async update(id: string, updates: Partial<User & { password?: string }>) {
       const { data, error } = await supabase
         .from('profiles')
         .update({
           name: updates.name,
           role: updates.role,
-          avatar_url: updates.avatar
+          avatar_url: updates.avatar,
+          ...(updates.password ? { password: updates.password } : {})
         })
         .eq('id', id)
         .select();
@@ -99,7 +106,14 @@ export const db = {
     async create(student: Partial<Student>) {
       const { data, error } = await supabase
         .from('students')
-        .insert([student])
+        .insert([{
+          name: student.name,
+          age: student.age,
+          grade: student.grade,
+          school: student.school,
+          subjects: student.subjects,
+          guardian_id: student.guardianId
+        }])
         .select();
       if (error) throw error;
       return data[0] as Student;
@@ -117,7 +131,13 @@ export const db = {
     async create(payment: Partial<Payment>) {
       const { data, error } = await supabase
         .from('payments')
-        .insert([payment])
+        .insert([{
+          student_id: payment.studentId,
+          amount: payment.amount,
+          due_date: payment.dueDate,
+          status: payment.status,
+          description: payment.description
+        }])
         .select();
       if (error) throw error;
       return data[0] as Payment;
@@ -136,7 +156,15 @@ export const db = {
     async create(classData: Partial<ClassSession>) {
       const { data, error } = await supabase
         .from('classes')
-        .insert([classData])
+        .insert([{
+          subject: classData.subject,
+          teacher_id: classData.teacherId,
+          student_id: classData.studentId,
+          date: classData.date,
+          time: classData.time,
+          status: classData.status,
+          notes: classData.notes
+        }])
         .select();
       if (error) throw error;
       return data[0] as ClassSession;

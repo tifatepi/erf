@@ -15,7 +15,8 @@ const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isDataSyncing, setIsDataSyncing] = useState(false);
   
   // Real Database State
   const [students, setStudents] = useState<Student[]>([]);
@@ -29,7 +30,7 @@ const App: React.FC = () => {
   }, [isAuthenticated, currentUser]);
 
   const loadAllData = async () => {
-    setIsLoading(true);
+    setIsDataSyncing(true);
     try {
       const [sData, pData, cData] = await Promise.all([
         db.students.list(),
@@ -42,7 +43,7 @@ const App: React.FC = () => {
     } catch (error) {
       console.error("Erro ao carregar dados do Supabase:", error);
     } finally {
-      setIsLoading(false);
+      setIsDataSyncing(false);
     }
   };
 
@@ -60,27 +61,20 @@ const App: React.FC = () => {
     };
   }, [students, payments, classes]);
 
-  const handleLogin = async (role: string, email?: string) => {
+  const handleLogin = async (email: string, password?: string) => {
     setIsLoading(true);
     try {
-      // Tenta buscar o perfil real no Supabase pelo e-mail (ou usa mock se não encontrar/informar)
-      const profile = email ? await db.profiles.getByEmail(email) : null;
+      const user = await db.auth.login(email, password || '');
       
-      if (profile) {
-        setCurrentUser(profile);
+      if (user) {
+        setCurrentUser(user);
+        setIsAuthenticated(true);
       } else {
-        // Fallback para desenvolvimento caso o usuário ainda não exista no profiles
-        setCurrentUser({
-          id: 'temp-admin',
-          name: 'Administrador EduBoost',
-          email: email || 'admin@eduboost.com.br',
-          role: role as UserRole,
-          avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Admin'
-        });
+        alert("E-mail ou senha incorretos. Tente novamente.");
       }
-      setIsAuthenticated(true);
     } catch (err) {
       console.error("Erro no login:", err);
+      alert("Erro ao conectar ao servidor.");
     } finally {
       setIsLoading(false);
     }
@@ -111,7 +105,7 @@ const App: React.FC = () => {
   };
 
   const renderContent = () => {
-    if (isLoading && isAuthenticated) {
+    if (isDataSyncing) {
       return (
         <div className="flex items-center justify-center h-[60vh]">
           <div className="flex flex-col items-center gap-4">
@@ -154,7 +148,7 @@ const App: React.FC = () => {
   };
 
   if (!isAuthenticated) {
-    return <Login onLogin={handleLogin} />;
+    return <Login onLogin={handleLogin} isLoading={isLoading} />;
   }
 
   return (

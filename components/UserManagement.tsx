@@ -11,7 +11,8 @@ import {
   Trash2, 
   X,
   Filter,
-  AlertCircle
+  AlertCircle,
+  Key
 } from 'lucide-react';
 
 const UserManagement: React.FC = () => {
@@ -25,7 +26,8 @@ const UserManagement: React.FC = () => {
   const [newUser, setNewUser] = useState({
     name: '',
     email: '',
-    role: UserRole.ALUNO
+    role: UserRole.ALUNO,
+    password: ''
   });
 
   useEffect(() => {
@@ -49,20 +51,23 @@ const UserManagement: React.FC = () => {
     setSubmitting(true);
     setErrorMsg(null);
     try {
-      const created = await db.profiles.create(newUser);
+      const created = await db.profiles.create({
+        ...newUser,
+        password: newUser.password || '123456'
+      });
       setUsers(prev => [...prev, created]);
       setIsModalOpen(false);
-      setNewUser({ name: '', email: '', role: UserRole.ALUNO });
+      setNewUser({ name: '', email: '', role: UserRole.ALUNO, password: '' });
     } catch (err: any) {
       console.error(err);
-      setErrorMsg(err.message || "Erro ao conectar com o Supabase. Verifique o console.");
+      setErrorMsg(err.message || "Erro ao criar usuário no banco.");
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (window.confirm("Tem certeza que deseja remover este acesso?")) {
+    if (window.confirm("Tem certeza que deseja remover este acesso? O usuário não conseguirá mais logar.")) {
       try {
         await db.profiles.delete(id);
         setUsers(prev => prev.filter(u => u.id !== id));
@@ -89,14 +94,14 @@ const UserManagement: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-3xl font-black text-slate-900 tracking-tight">Administração de Usuários</h2>
-          <p className="text-slate-500 font-medium">Controle de acessos e atribuições de permissões.</p>
+          <p className="text-slate-500 font-medium">Controle total de credenciais e acessos.</p>
         </div>
         <button 
           onClick={() => { setErrorMsg(null); setIsModalOpen(true); }}
           className="bg-indigo-600 text-white px-6 py-3 rounded-2xl text-sm font-bold hover:bg-indigo-700 shadow-xl shadow-indigo-100 flex items-center gap-2 justify-center transition-all active:scale-95"
         >
           <UserPlus size={18} />
-          Convidar Usuário
+          Cadastrar Usuário
         </button>
       </div>
 
@@ -114,7 +119,7 @@ const UserManagement: React.FC = () => {
           </div>
           <button className="flex items-center gap-2 px-6 py-3.5 text-sm font-bold text-slate-600 hover:bg-slate-50 rounded-2xl border border-slate-100 transition-all">
             <Filter size={18} />
-            Filtrar Cargos
+            Filtros
           </button>
         </div>
 
@@ -155,8 +160,8 @@ const UserManagement: React.FC = () => {
                     </td>
                     <td className="px-8 py-6">
                       <div className="flex items-center justify-center gap-2">
-                        <button className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all">
-                          <Edit2 size={16} />
+                        <button className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all" title="Redefinir Senha">
+                          <Key size={16} />
                         </button>
                         <button 
                           onClick={() => handleDelete(user.id)}
@@ -174,22 +179,22 @@ const UserManagement: React.FC = () => {
         </div>
       </div>
 
-      {/* Modal Convidar Usuário */}
+      {/* Modal Criar Usuário */}
       {isModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-md p-4 animate-fade-in">
           <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-lg overflow-hidden border border-white/20">
             <div className="p-8 border-b border-slate-50 flex items-center justify-between bg-indigo-600 text-white">
               <div>
-                <h3 className="font-black text-2xl tracking-tight">Convidar Usuário</h3>
-                <p className="text-indigo-100 text-xs font-bold uppercase tracking-widest mt-1">Configuração de Credenciais</p>
+                <h3 className="font-black text-2xl tracking-tight">Novo Cadastro</h3>
+                <p className="text-indigo-100 text-xs font-bold uppercase tracking-widest mt-1">Criação direta sem e-mail de confirmação</p>
               </div>
               <button onClick={() => setIsModalOpen(false)} className="hover:bg-white/10 p-2 rounded-2xl transition-all">
                 <X size={24} />
               </button>
             </div>
-            <form onSubmit={handleCreateUser} className="p-8 space-y-5">
+            <form onSubmit={handleCreateUser} className="p-8 space-y-4">
               {errorMsg && (
-                <div className="bg-rose-50 text-rose-600 p-4 rounded-2xl flex items-center gap-3 border border-rose-100 text-sm font-bold animate-pulse">
+                <div className="bg-rose-50 text-rose-600 p-4 rounded-2xl flex items-center gap-3 border border-rose-100 text-sm font-bold">
                   <AlertCircle size={20} />
                   {errorMsg}
                 </div>
@@ -205,7 +210,7 @@ const UserManagement: React.FC = () => {
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">E-mail Institucional</label>
+                <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">E-mail de Login</label>
                 <input 
                   type="email" required
                   className="w-full px-5 py-3.5 bg-slate-50 border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
@@ -213,26 +218,33 @@ const UserManagement: React.FC = () => {
                   onChange={e => setNewUser({...newUser, email: e.target.value})}
                 />
               </div>
-              <div className="space-y-1">
-                <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Cargo no Sistema</label>
-                <select 
-                  className="w-full px-5 py-3.5 bg-slate-50 border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none transition-all appearance-none"
-                  value={newUser.role}
-                  onChange={e => setNewUser({...newUser, role: e.target.value as UserRole})}
-                >
-                  <option value={UserRole.ADMIN}>Administrador</option>
-                  <option value={UserRole.PROFESSOR}>Professor</option>
-                  <option value={UserRole.RESPONSAVEL}>Responsável</option>
-                  <option value={UserRole.ALUNO}>Aluno</option>
-                </select>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Cargo</label>
+                  <select 
+                    className="w-full px-5 py-3.5 bg-slate-50 border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none transition-all appearance-none"
+                    value={newUser.role}
+                    onChange={e => setNewUser({...newUser, role: e.target.value as UserRole})}
+                  >
+                    <option value={UserRole.ADMIN}>Administrador</option>
+                    <option value={UserRole.PROFESSOR}>Professor</option>
+                    <option value={UserRole.RESPONSAVEL}>Responsável</option>
+                    <option value={UserRole.ALUNO}>Aluno</option>
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Senha Inicial</label>
+                  <input 
+                    type="text"
+                    placeholder="Padrao: 123456"
+                    className="w-full px-5 py-3.5 bg-slate-50 border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                    value={newUser.password}
+                    onChange={e => setNewUser({...newUser, password: e.target.value})}
+                  />
+                </div>
               </div>
-              <div className="pt-4 flex items-center gap-3 bg-amber-50 p-4 rounded-2xl border border-amber-100">
-                <ShieldCheck size={20} className="text-amber-600 shrink-0" />
-                <p className="text-[10px] text-amber-700 font-bold leading-tight uppercase">
-                  O sistema criará o perfil diretamente no banco de dados.
-                </p>
-              </div>
-              <div className="pt-4 flex gap-4">
+
+              <div className="pt-6 flex gap-4">
                 <button 
                   type="button" 
                   onClick={() => setIsModalOpen(false)}
@@ -245,7 +257,7 @@ const UserManagement: React.FC = () => {
                   disabled={submitting}
                   className="flex-1 px-6 py-4 bg-indigo-600 text-white rounded-2xl text-sm font-black hover:bg-indigo-700 shadow-xl shadow-indigo-100 transition-all active:scale-95 disabled:opacity-50"
                 >
-                  {submitting ? 'Gravando...' : 'Confirmar Cadastro'}
+                  {submitting ? 'Salvando...' : 'Confirmar Cadastro'}
                 </button>
               </div>
             </form>
