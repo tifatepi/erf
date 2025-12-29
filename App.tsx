@@ -87,17 +87,19 @@ const App: React.FC = () => {
     try {
       const created = await db.students.create(newStudent);
       setStudents(prev => [...prev, created]);
-    } catch (err) {
-      alert("Erro ao salvar aluno");
+    } catch (err: any) {
+      console.error("App: Erro ao cadastrar aluno:", err);
+      alert(`Erro ao salvar aluno: ${err.message || 'Verifique sua conexão'}`);
     }
   };
 
   const updateStudent = async (id: string, updates: Partial<Student>) => {
     try {
       const updated = await db.students.update(id, updates);
-      setStudents(prev => (prev || []).map(s => s.id === id ? updated : s));
-    } catch (err) {
-      alert("Erro ao atualizar aluno");
+      setStudents(prev => (prev || []).map(s => String(s.id) === String(id) ? updated : s));
+    } catch (err: any) {
+      console.error("App: Erro ao atualizar aluno:", err);
+      alert(`Erro ao atualizar aluno: ${err.message || 'Verifique os dados'}`);
     }
   };
 
@@ -133,10 +135,8 @@ const App: React.FC = () => {
   };
 
   const deleteClassSession = async (id: string) => {
-    console.log("App: Solicitando exclusão da aula", id);
     try {
       await db.classes.delete(id);
-      console.log("App: Aula excluída do banco, atualizando estado local.");
       setClasses(prev => prev.filter(c => String(c.id) !== String(id)));
     } catch (err) {
       console.error("App: Erro ao deletar aula:", err);

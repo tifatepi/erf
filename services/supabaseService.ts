@@ -2,13 +2,6 @@
 import { supabase } from '../lib/supabase';
 import { Student, Payment, ClassSession, User, UserRole } from '../types';
 
-const generateId = () => {
-  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-    return crypto.randomUUID();
-  }
-  return Math.random().toString(36).substring(2) + Date.now().toString(36);
-};
-
 export const db = {
   auth: {
     async login(email: string, password: string): Promise<User | null> {
@@ -74,14 +67,14 @@ export const db = {
       const { data, error } = await supabase.from('students').select('*').order('name');
       if (error) throw error;
       return (data || []).map(s => ({
-        id: s.id,
+        id: String(s.id),
         name: s.name,
         birthDate: s.birth_date, 
         grade: s.grade,
         school: s.school,
         subjects: s.subjects || [],
         guardianId: s.guardian_id,
-        monthlyFee: s.monthly_fee
+        monthlyFee: Number(s.monthly_fee || 0)
       })) as Student[];
     },
     async create(student: Partial<Student>) {
@@ -94,20 +87,26 @@ export const db = {
         guardian_id: student.guardianId,
         monthly_fee: student.monthlyFee || 0
       }]).select();
+      
       if (error) {
-        console.error("Erro Supabase (Create Student):", error);
+        console.error("Erro Supabase ao criar aluno:", error);
         throw error;
       }
+      
+      const s = data[0];
       return { 
-        ...data[0], 
-        birthDate: data[0].birth_date,
-        guardianId: data[0].guardian_id,
-        monthlyFee: data[0].monthly_fee
+        id: String(s.id),
+        name: s.name,
+        birthDate: s.birth_date,
+        grade: s.grade,
+        school: s.school,
+        subjects: s.subjects,
+        guardianId: s.guardian_id,
+        monthlyFee: Number(s.monthly_fee || 0)
       } as Student;
     },
     async update(id: string, updates: Partial<Student>) {
-      // Construir objeto de atualização para evitar envio de campos undefined
-      const payload: any = {
+      const payload = {
         name: updates.name,
         birth_date: updates.birthDate,
         grade: updates.grade,
@@ -123,17 +122,22 @@ export const db = {
         .select();
 
       if (error) {
-        console.error("Erro Supabase (Update Student):", error);
+        console.error("Erro Supabase ao atualizar aluno:", error);
         throw error;
       }
       
-      if (!data || data.length === 0) throw new Error("Nenhum dado retornado na atualização");
+      if (!data || data.length === 0) throw new Error("Registro não encontrado para atualização.");
 
+      const s = data[0];
       return { 
-        ...data[0], 
-        birthDate: data[0].birth_date,
-        guardianId: data[0].guardian_id,
-        monthlyFee: data[0].monthly_fee
+        id: String(s.id),
+        name: s.name,
+        birthDate: s.birth_date,
+        grade: s.grade,
+        school: s.school,
+        subjects: s.subjects,
+        guardianId: s.guardian_id,
+        monthlyFee: Number(s.monthly_fee || 0)
       } as Student;
     },
     async delete(id: string) {
@@ -165,10 +169,7 @@ export const db = {
         description: payment.description
       }]).select();
       
-      if (error) {
-        console.error("Erro detalhado do Supabase (Payment):", error);
-        throw error;
-      }
+      if (error) throw error;
       
       const p = data[0];
       return {
@@ -207,10 +208,7 @@ export const db = {
         status: classData.status,
         notes: classData.notes
       }]).select();
-      if (error) {
-        console.error("Erro Supabase (Class):", error);
-        throw error;
-      }
+      if (error) throw error;
       
       const c = data[0];
       return {
