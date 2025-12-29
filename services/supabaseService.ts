@@ -24,7 +24,7 @@ export const db = {
         .from('profiles')
         .select('*')
         .eq('email', email)
-        .maybeSingle(); // Usar maybeSingle para evitar erro caso não encontre
+        .maybeSingle();
       
       if (error || !data) return null;
       
@@ -37,10 +37,13 @@ export const db = {
       } as User;
     },
     async create(profile: Partial<User>) {
-      // Removemos o ID manual para deixar o gen_random_uuid() do Postgres agir
+      // Geramos o ID no cliente para evitar o erro de restrição NOT NULL no banco
+      const profileId = crypto.randomUUID();
+      
       const { data, error } = await supabase
         .from('profiles')
         .insert([{
+          id: profileId,
           name: profile.name,
           email: profile.email,
           role: profile.role,
