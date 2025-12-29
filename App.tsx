@@ -6,10 +6,12 @@ import StudentList from './components/StudentList';
 import FinancialList from './components/FinancialList';
 import AcademicView from './components/AcademicView';
 import CalendarView from './components/CalendarView';
+import Login from './components/Login';
 import { UserRole, Student, Payment, ClassSession } from './types';
 import { MOCK_STUDENTS, MOCK_PAYMENTS, MOCK_CLASSES } from './constants';
 
 const App: React.FC = () => {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [userRole, setUserRole] = useState<UserRole>(UserRole.ADMIN);
   
@@ -32,10 +34,15 @@ const App: React.FC = () => {
     };
   }, [students, payments, classes]);
 
+  const handleLogin = (role: string) => {
+    setUserRole(role as UserRole);
+    setIsAuthenticated(true);
+  };
+
   const handleLogout = () => {
-    // Como a tela de login foi removida, o logout apenas reseta para o dashboard por enquanto
+    setIsAuthenticated(false);
     setActiveTab('dashboard');
-    console.log("Sessão encerrada (simulação)");
+    console.log("Sessão encerrada");
   };
 
   const addStudent = (newStudent: Student) => {
@@ -75,6 +82,10 @@ const App: React.FC = () => {
         return <Dashboard stats={stats} classes={classes} students={students} />;
     }
   };
+
+  if (!isAuthenticated) {
+    return <Login onLogin={handleLogin} />;
+  }
 
   return (
     <Layout 

@@ -37,8 +37,8 @@
       }
     </style>
 
-    <!-- Shim fundamental para evitar 'ReferenceError: process is not defined' -->
-    <script shadow>
+    <!-- Shim fundamental para evitar 'ReferenceError: process is not defined' no SDK do Gemini -->
+    <script>
       window.process = { env: { API_KEY: "" } };
     </script>
 
@@ -61,7 +61,6 @@
   </head>
   <body>
     <div id="root"></div>
-    <!-- No Vite ou ambiente ESM, o navegador resolve os imports do index.tsx usando o importmap acima -->
     <script type="module" src="/index.tsx"></script>
   </body>
 </html>
