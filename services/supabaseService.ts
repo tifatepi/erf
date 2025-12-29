@@ -84,7 +84,7 @@ export const db = {
       }]).select();
       if (error) throw error;
       const i = data[0];
-      return { id: String(i.id), name: i.name, cnpj: i.cnpj, contactName: i.contact_name, contactPhone: i.contact_phone } as Institution;
+      return { id: String(i.id), name: i.name, cnpj: i.cnpj, contactName: i.contactName, contactPhone: i.contactPhone } as Institution;
     },
     async update(id: string, inst: Partial<Institution>) {
       const { data, error } = await supabase.from('institutions').update({
@@ -95,7 +95,7 @@ export const db = {
       }).eq('id', id).select();
       if (error) throw error;
       const i = data[0];
-      return { id: String(i.id), name: i.name, cnpj: i.cnpj, contactName: i.contact_name, contactPhone: i.contact_phone } as Institution;
+      return { id: String(i.id), name: i.name, cnpj: i.cnpj, contactName: i.contactName, contactPhone: i.contactPhone } as Institution;
     },
     async delete(id: string) {
       const { error } = await supabase.from('institutions').delete().eq('id', id);
@@ -213,17 +213,12 @@ export const db = {
       })) as Payment[];
     },
     async create(payment: Partial<Payment>) {
-      // Validação robusta do studentId (aceita string ou number)
-      const rawId = payment.studentId;
-      const studentIdInt = rawId ? parseInt(String(rawId), 10) : NaN;
-
-      if (isNaN(studentIdInt)) {
-        console.error("ID do aluno recebido é inválido:", rawId);
-        throw new Error("Não foi possível identificar o aluno para registrar o pagamento.");
+      if (!payment.studentId) {
+        throw new Error("Selecione um aluno antes de salvar o pagamento.");
       }
 
       const payload = {
-        student_id: studentIdInt,
+        student_id: payment.studentId, // Enviando como UUID puro
         amount: payment.amount,
         due_date: payment.dueDate,
         payment_date: payment.status === 'PAID' ? (payment.paymentDate || new Date().toISOString().split('T')[0]) : null,
@@ -231,15 +226,13 @@ export const db = {
         description: payment.description
       };
 
-      console.log("Enviando payload para Supabase:", payload);
-
       const { data, error } = await supabase
         .from('payments')
         .insert([payload])
         .select();
       
       if (error) {
-        console.error("Erro Supabase (Insert Payment):", error);
+        console.error("Erro detalhado do Supabase:", error);
         throw error;
       }
       
@@ -270,7 +263,6 @@ export const db = {
         .select();
       
       if (error) {
-        console.error("Erro Supabase (Update Payment):", error);
         throw error;
       }
       
@@ -305,7 +297,7 @@ export const db = {
       const { data, error } = await supabase.from('classes').insert([{
         subject: session.subject,
         teacher_id: session.teacherId,
-        student_id: parseInt(session.studentId || '0'),
+        student_id: session.studentId, // UUID puro
         date: session.date,
         time: session.time,
         status: session.status,
