@@ -91,7 +91,6 @@ const App: React.FC = () => {
     setActiveTab('dashboard');
   };
 
-  // CRUD Instituições
   const addInstitution = async (data: Partial<Institution>) => {
     try {
       const created = await db.institutions.create(data);
@@ -121,7 +120,6 @@ const App: React.FC = () => {
     }
   };
 
-  // CRUD Docentes
   const addTeacher = async (data: Partial<Teacher>) => {
     try {
       const created = await db.teachers.create(data);
@@ -151,13 +149,11 @@ const App: React.FC = () => {
     }
   };
 
-  // CRUD Alunos
   const addStudent = async (newStudent: Partial<Student>) => {
     try {
       const created = await db.students.create(newStudent);
       setStudents(prev => [...prev, created]);
     } catch (err: any) {
-      console.error("App: Erro ao cadastrar aluno:", err);
       alert(`Erro ao salvar aluno: ${err.message || 'Verifique sua conexão'}`);
     }
   };
@@ -167,7 +163,6 @@ const App: React.FC = () => {
       const updated = await db.students.update(id, updates);
       setStudents(prev => (prev || []).map(s => String(s.id) === String(id) ? updated : s));
     } catch (err: any) {
-      console.error("App: Erro ao atualizar aluno:", err);
       alert(`Erro ao atualizar aluno: ${err.message || 'Verifique os dados'}`);
     }
   };
@@ -176,8 +171,9 @@ const App: React.FC = () => {
     try {
       const created = await db.payments.create(newPayment);
       setPayments(prev => [created, ...prev]);
-    } catch (err) {
-      alert("Erro ao processar lançamento financeiro.");
+    } catch (err: any) {
+      console.error("Erro Supabase:", err);
+      alert(`Erro no financeiro: ${err.message || 'Falha na comunicação com o banco de dados.'}`);
     }
   };
 
@@ -185,8 +181,8 @@ const App: React.FC = () => {
     try {
       const updated = await db.payments.update(id, updates);
       setPayments(prev => prev.map(p => p.id === id ? updated : p));
-    } catch (err) {
-      alert("Erro ao atualizar pagamento.");
+    } catch (err: any) {
+      alert(`Erro ao atualizar pagamento: ${err.message}`);
     }
   };
 

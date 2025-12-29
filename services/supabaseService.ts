@@ -79,7 +79,6 @@ export const db = {
         name: inst.name,
         cnpj: inst.cnpj,
         contact_name: inst.contactName,
-        // Fixed: Property 'contact_phone' does not exist on type 'Partial<Institution>'. Using contactPhone instead.
         contact_phone: inst.contactPhone
       }]).select();
       if (error) throw error;
@@ -191,10 +190,7 @@ export const db = {
         monthly_fee: student.monthlyFee || 0
       }]).select();
       
-      if (error) {
-        console.error("Erro Supabase ao criar aluno:", error);
-        throw error;
-      }
+      if (error) throw error;
       
       const s = data[0];
       return { 
@@ -224,13 +220,8 @@ export const db = {
         .eq('id', id)
         .select();
 
-      if (error) {
-        console.error("Erro Supabase ao atualizar aluno:", error);
-        throw error;
-      }
+      if (error) throw error;
       
-      if (!data || data.length === 0) throw new Error("Registro não encontrado para atualização.");
-
       const s = data[0];
       return { 
         id: String(s.id),
@@ -267,7 +258,7 @@ export const db = {
         student_id: payment.studentId,
         amount: payment.amount,
         due_date: payment.dueDate,
-        payment_date: payment.paymentDate,
+        payment_date: payment.paymentDate || null,
         status: payment.status,
         description: payment.description
       }]).select();
@@ -288,12 +279,14 @@ export const db = {
     async update(id: string, updates: Partial<Payment>) {
       const { data, error } = await supabase.from('payments').update({
         status: updates.status,
-        payment_date: updates.paymentDate,
+        payment_date: updates.paymentDate === undefined ? null : updates.paymentDate,
         amount: updates.amount,
         description: updates.description,
         due_date: updates.dueDate
       }).eq('id', id).select();
+      
       if (error) throw error;
+      
       const p = data[0];
       return {
         id: String(p.id),
