@@ -6,12 +6,10 @@ import StudentList from './components/StudentList';
 import FinancialList from './components/FinancialList';
 import AcademicView from './components/AcademicView';
 import CalendarView from './components/CalendarView';
-import Login from './components/Login';
 import { UserRole, Student, Payment, ClassSession } from './types';
 import { MOCK_STUDENTS, MOCK_PAYMENTS, MOCK_CLASSES } from './constants';
 
 const App: React.FC = () => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [userRole, setUserRole] = useState<UserRole>(UserRole.ADMIN);
   
@@ -34,14 +32,10 @@ const App: React.FC = () => {
     };
   }, [students, payments, classes]);
 
-  const handleLogin = (role: string) => {
-    setUserRole(role as UserRole);
-    setIsAuthenticated(true);
-  };
-
   const handleLogout = () => {
-    setIsAuthenticated(false);
+    // Como a tela de login foi removida, o logout apenas reseta para o dashboard por enquanto
     setActiveTab('dashboard');
+    console.log("Sessão encerrada (simulação)");
   };
 
   const addStudent = (newStudent: Student) => {
@@ -51,10 +45,6 @@ const App: React.FC = () => {
   const addPayment = (newPayment: Payment) => {
     setPayments(prev => [...prev, { ...newPayment, id: `p${prev.length + 1}` }]);
   };
-
-  if (!isAuthenticated) {
-    return <Login onLogin={handleLogin} />;
-  }
 
   const renderContent = () => {
     switch (activeTab) {
@@ -70,13 +60,13 @@ const App: React.FC = () => {
         return <AcademicView students={students} />;
       case 'reports':
         return (
-          <div className="flex flex-col items-center justify-center h-[60vh] text-center space-y-4 animate-in fade-in duration-500">
+          <div className="flex flex-col items-center justify-center h-[60vh] text-center space-y-4 animate-fade-in">
             <div className="bg-indigo-100 p-8 rounded-full text-indigo-600">
               <span className="text-4xl font-bold">PDF</span>
             </div>
             <h3 className="text-xl font-bold text-slate-800">Relatórios Gerenciais</h3>
             <p className="text-slate-500 max-w-md">Relatórios consolidados prontos para exportação.</p>
-            <button className="mt-4 bg-indigo-600 text-white px-6 py-2 rounded-xl font-medium hover:bg-indigo-700 shadow-lg">
+            <button className="mt-4 bg-indigo-600 text-white px-6 py-2 rounded-xl font-medium hover:bg-indigo-700 shadow-lg transition-all active:scale-95">
               Gerar PDF Consolidado
             </button>
           </div>
