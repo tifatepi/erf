@@ -25,9 +25,12 @@ export const MOCK_USER: User = {
 };
 
 export const MOCK_STUDENTS: Student[] = [
-  { id: 's1', name: 'João Oliveira', age: 12, grade: '7º Ano', school: 'Escola Municipal Central', guardianId: 'r1', subjects: ['Matemática', 'Português'] },
-  { id: 's2', name: 'Mariana Costa', age: 10, grade: '5º Ano', school: 'Colégio Adventista', guardianId: 'r2', subjects: ['História', 'Geografia'] },
-  { id: 's3', name: 'Pedro Santos', age: 15, grade: '9º Ano', school: 'IFSP', guardianId: 'r1', subjects: ['Física', 'Química'] },
+  // Fix: Replaced 'age' with 'birthDate' to match the Student interface definition
+  { id: 's1', name: 'João Oliveira', birthDate: '2011-05-15', grade: '7º Ano', school: 'Escola Municipal Central', guardianId: 'r1', subjects: ['Matemática', 'Português'] },
+  // Fix: Replaced 'age' with 'birthDate' to match the Student interface definition
+  { id: 's2', name: 'Mariana Costa', birthDate: '2013-08-22', grade: '5º Ano', school: 'Colégio Adventista', guardianId: 'r2', subjects: ['História', 'Geografia'] },
+  // Fix: Replaced 'age' with 'birthDate' to match the Student interface definition
+  { id: 's3', name: 'Pedro Santos', birthDate: '2008-11-10', grade: '9º Ano', school: 'IFSP', guardianId: 'r1', subjects: ['Física', 'Química'] },
 ];
 
 export const MOCK_PAYMENTS: Payment[] = [

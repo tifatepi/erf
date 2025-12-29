@@ -17,7 +17,7 @@ export interface User {
 export interface Student {
   id: string;
   name: string;
-  age: number;
+  birthDate: string; // ISO Date String
   grade: string;
   school: string;
   guardianId: string;

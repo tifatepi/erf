@@ -18,7 +18,6 @@ const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isDataSyncing, setIsDataSyncing] = useState(false);
   
-  // Real Database State
   const [students, setStudents] = useState<Student[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [classes, setClasses] = useState<ClassSession[]>([]);
@@ -41,7 +40,7 @@ const App: React.FC = () => {
       setPayments(pData);
       setClasses(cData);
     } catch (error) {
-      console.error("Erro ao carregar dados do Supabase:", error);
+      console.error("Erro ao carregar dados:", error);
     } finally {
       setIsDataSyncing(false);
     }
@@ -65,16 +64,14 @@ const App: React.FC = () => {
     setIsLoading(true);
     try {
       const user = await db.auth.login(email, password || '');
-      
       if (user) {
         setCurrentUser(user);
         setIsAuthenticated(true);
       } else {
-        alert("E-mail ou senha incorretos. Tente novamente.");
+        alert("E-mail ou senha incorretos.");
       }
     } catch (err) {
-      console.error("Erro no login:", err);
-      alert("Erro ao conectar ao servidor.");
+      alert("Erro ao conectar.");
     } finally {
       setIsLoading(false);
     }
@@ -95,6 +92,15 @@ const App: React.FC = () => {
     }
   };
 
+  const updateStudent = async (id: string, updates: Partial<Student>) => {
+    try {
+      const updated = await db.students.update(id, updates);
+      setStudents(prev => prev.map(s => s.id === id ? updated : s));
+    } catch (err) {
+      alert("Erro ao atualizar aluno");
+    }
+  };
+
   const addPayment = async (newPayment: Partial<Payment>) => {
     try {
       const created = await db.payments.create(newPayment);
@@ -110,7 +116,7 @@ const App: React.FC = () => {
         <div className="flex items-center justify-center h-[60vh]">
           <div className="flex flex-col items-center gap-4">
             <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-            <p className="text-slate-500 font-medium animate-pulse">Sincronizando dados acadêmicos...</p>
+            <p className="text-slate-500 font-medium">Sincronizando...</p>
           </div>
         </div>
       );
@@ -120,7 +126,7 @@ const App: React.FC = () => {
       case 'dashboard':
         return <Dashboard stats={stats} classes={classes} students={students} />;
       case 'students':
-        return <StudentList students={students} onAddStudent={addStudent} />;
+        return <StudentList students={students} onAddStudent={addStudent} onUpdateStudent={updateStudent} />;
       case 'financial':
         return <FinancialList payments={payments} students={students} onAddPayment={addPayment} />;
       case 'calendar':
@@ -129,19 +135,6 @@ const App: React.FC = () => {
         return <AcademicView students={students} />;
       case 'users':
         return <UserManagement />;
-      case 'reports':
-        return (
-          <div className="flex flex-col items-center justify-center h-[60vh] text-center space-y-4 animate-fade-in">
-            <div className="bg-indigo-100 p-8 rounded-full text-indigo-600">
-              <span className="text-4xl font-bold">PDF</span>
-            </div>
-            <h3 className="text-xl font-bold text-slate-800">Relatórios Gerenciais</h3>
-            <p className="text-slate-500 max-w-md">Relatórios consolidados sincronizados em tempo real.</p>
-            <button className="mt-4 bg-indigo-600 text-white px-6 py-2 rounded-xl font-medium hover:bg-indigo-700 shadow-lg transition-all active:scale-95">
-              Gerar PDF Consolidado
-            </button>
-          </div>
-        );
       default:
         return <Dashboard stats={stats} classes={classes} students={students} />;
     }
@@ -152,12 +145,7 @@ const App: React.FC = () => {
   }
 
   return (
-    <Layout 
-      activeTab={activeTab} 
-      setActiveTab={setActiveTab} 
-      user={currentUser!}
-      onLogout={handleLogout}
-    >
+    <Layout activeTab={activeTab} setActiveTab={setActiveTab} user={currentUser!} onLogout={handleLogout}>
       {renderContent()}
     </Layout>
   );
