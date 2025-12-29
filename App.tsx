@@ -110,6 +110,19 @@ const App: React.FC = () => {
     }
   };
 
+  const addClassSession = async (newClass: Partial<ClassSession>) => {
+    try {
+      const created = await db.classes.create({
+        ...newClass,
+        teacherId: currentUser?.id || 'system',
+        status: 'SCHEDULED'
+      });
+      setClasses(prev => [...prev, created]);
+    } catch (err) {
+      alert("Erro ao agendar aula");
+    }
+  };
+
   const renderContent = () => {
     if (isDataSyncing) {
       return (
@@ -130,7 +143,7 @@ const App: React.FC = () => {
       case 'financial':
         return <FinancialList payments={payments} students={students} onAddPayment={addPayment} />;
       case 'calendar':
-        return <CalendarView classes={classes} students={students} />;
+        return <CalendarView classes={classes} students={students} onAddClass={addClassSession} />;
       case 'academic':
         return <AcademicView students={students} />;
       case 'users':
