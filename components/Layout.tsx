@@ -1,22 +1,21 @@
 
 import React, { useState } from 'react';
-import { NAVIGATION_ITEMS, APP_NAME, MOCK_USER } from '../constants';
-import { UserRole } from '../types';
+import { NAVIGATION_ITEMS, APP_NAME } from '../constants';
+import { User, UserRole } from '../types';
 import { Menu, X, LogOut, Bell, ChevronRight, GraduationCap } from 'lucide-react';
 
 interface LayoutProps {
   children: React.ReactNode;
   activeTab: string;
   setActiveTab: (tab: string) => void;
-  userRole: UserRole;
-  setUserRole: (role: UserRole) => void;
+  user: User;
   onLogout: () => void;
 }
 
-const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, userRole, setUserRole, onLogout }) => {
+const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, user, onLogout }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
-  const filteredNav = NAVIGATION_ITEMS.filter(item => item.roles.includes(userRole));
+  const filteredNav = NAVIGATION_ITEMS.filter(item => item.roles.includes(user.role));
 
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden font-sans">
@@ -52,11 +51,15 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, user
 
         <div className="p-4 border-t border-slate-100">
           <div className={`flex items-center gap-3 ${isSidebarOpen ? 'justify-start' : 'justify-center'}`}>
-            <img src={MOCK_USER.avatar} alt="Avatar" className="w-9 h-9 rounded-full border border-slate-200" />
+            <img 
+              src={user.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name}`} 
+              alt="Avatar" 
+              className="w-9 h-9 rounded-full border border-slate-200 bg-slate-50" 
+            />
             {isSidebarOpen && (
               <div className="flex-1 overflow-hidden">
-                <p className="text-xs font-bold text-slate-800 truncate">{MOCK_USER.name}</p>
-                <p className="text-[10px] text-slate-400 truncate uppercase font-bold tracking-tighter">{userRole}</p>
+                <p className="text-xs font-bold text-slate-800 truncate">{user.name}</p>
+                <p className="text-[10px] text-slate-400 truncate uppercase font-bold tracking-tighter">{user.role}</p>
               </div>
             )}
           </div>

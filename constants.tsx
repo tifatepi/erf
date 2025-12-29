@@ -10,9 +10,8 @@ import {
   DollarSign, 
   BarChart3, 
   Settings,
-  Clock,
-  CheckCircle2,
-  AlertCircle
+  ShieldCheck,
+  UserCog
 } from 'lucide-react';
 
 export const APP_NAME = "EduBoost";
@@ -49,5 +48,6 @@ export const NAVIGATION_ITEMS = [
   { id: 'academic', label: 'Acadêmico', icon: <BookOpen size={20} />, roles: [UserRole.ADMIN, UserRole.PROFESSOR, UserRole.RESPONSAVEL] },
   { id: 'calendar', label: 'Agenda', icon: <Calendar size={20} />, roles: [UserRole.ADMIN, UserRole.PROFESSOR, UserRole.RESPONSAVEL] },
   { id: 'financial', label: 'Financeiro', icon: <DollarSign size={20} />, roles: [UserRole.ADMIN, UserRole.RESPONSAVEL] },
+  { id: 'users', label: 'Usuários', icon: <UserCog size={20} />, roles: [UserRole.ADMIN] },
   { id: 'reports', label: 'Relatórios', icon: <BarChart3 size={20} />, roles: [UserRole.ADMIN] },
 ];
