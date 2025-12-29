@@ -1,12 +1,19 @@
 
 import { GoogleGenAI } from "@google/genai";
 
-// Fix: Always use process.env.API_KEY directly when initializing the client.
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
 export const getAcademicInsights = async (studentData: string) => {
+  // Verificação de segurança para a chave de API
+  const apiKey = process.env.API_KEY;
+  
+  if (!apiKey || apiKey.trim() === "") {
+    console.warn("Gemini API Key não configurada.");
+    return "A IA está desativada no momento (Chave de API ausente).";
+  }
+
   try {
-    // Fix: Query GenAI with the model name and prompt directly via ai.models.generateContent.
+    // Inicializamos o cliente apenas no momento do uso para evitar travar o app no load
+    const ai = new GoogleGenAI({ apiKey });
+    
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: `Analise os seguintes dados acadêmicos de um aluno e forneça uma sugestão curta (max 3 frases) de foco pedagógico. Dados: ${studentData}`,
@@ -16,7 +23,6 @@ export const getAcademicInsights = async (studentData: string) => {
       }
     });
     
-    // Fix: Use the .text property directly (it is a property, not a method).
     return response.text || "Sem insights disponíveis no momento.";
   } catch (error) {
     console.error("Gemini Service Error:", error);

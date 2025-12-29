@@ -8,9 +8,19 @@ if (!rootElement) {
   throw new Error("Could not find root element to mount to");
 }
 
-const root = ReactDOM.createRoot(rootElement);
-root.render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
-);
+try {
+  const root = ReactDOM.createRoot(rootElement);
+  root.render(
+    <React.StrictMode>
+      <App />
+    </React.StrictMode>
+  );
+} catch (error) {
+  console.error("Erro fatal na inicialização do React:", error);
+  rootElement.innerHTML = `
+    <div style="padding: 20px; text-align: center; font-family: sans-serif;">
+      <h2>Erro ao carregar aplicação</h2>
+      <p>Ocorreu um problema técnico. Por favor, recarregue a página.</p>
+    </div>
+  `;
+}
