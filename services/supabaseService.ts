@@ -1,6 +1,6 @@
 
 import { supabase } from '../lib/supabase';
-import { Student, Payment, ClassSession, User, UserRole, Institution, Teacher } from '../types';
+import { Student, Payment, ClassSession, User, UserRole, Institution, Teacher, Turma, AttendanceRecord } from '../types';
 
 export const db = {
   auth: {
@@ -196,6 +196,79 @@ export const db = {
         subjects: s.subjects || [],
         monthlyFee: Number(s.monthly_fee || 0)
       } as Student;
+    }
+  },
+  turmas: {
+    async list() {
+      const { data, error } = await supabase.from('turmas').select('*').order('name');
+      if (error) throw error;
+      return (data || []).map(t => ({
+        id: String(t.id),
+        name: t.name,
+        subject: t.subject,
+        teacherId: t.teacher_id,
+        studentIds: t.student_ids || []
+      })) as Turma[];
+    },
+    async create(turma: Partial<Turma>) {
+      const { data, error } = await supabase.from('turmas').insert([{
+        name: turma.name,
+        subject: turma.subject,
+        teacher_id: turma.teacherId,
+        student_ids: turma.studentIds
+      }]).select();
+      if (error) throw error;
+      const t = data[0];
+      return {
+        id: String(t.id),
+        name: t.name,
+        subject: t.subject,
+        teacherId: t.teacher_id,
+        studentIds: t.student_ids || []
+      } as Turma;
+    },
+    async update(id: string, turma: Partial<Turma>) {
+      const { data, error } = await supabase.from('turmas').update({
+        name: turma.name,
+        subject: turma.subject,
+        teacher_id: turma.teacherId,
+        student_ids: turma.studentIds
+      }).eq('id', id).select();
+      if (error) throw error;
+      return data[0];
+    },
+    async delete(id: string) {
+      const { error } = await supabase.from('turmas').delete().eq('id', id);
+      if (error) throw error;
+    }
+  },
+  attendance: {
+    async getByTurmaAndDate(turmaId: string, date: string) {
+      const { data, error } = await supabase
+        .from('attendance')
+        .select('*')
+        .eq('turma_id', turmaId)
+        .eq('date', date)
+        .maybeSingle();
+      if (error) throw error;
+      return data ? {
+        id: data.id,
+        turmaId: data.turma_id,
+        date: data.date,
+        presentStudentIds: data.present_student_ids || []
+      } as AttendanceRecord : null;
+    },
+    async save(record: Partial<AttendanceRecord>) {
+      const { data, error } = await supabase
+        .from('attendance')
+        .upsert([{
+          turma_id: record.turmaId,
+          date: record.date,
+          present_student_ids: record.presentStudentIds
+        }], { onConflict: 'turma_id,date' })
+        .select();
+      if (error) throw error;
+      return data[0];
     }
   },
   payments: {

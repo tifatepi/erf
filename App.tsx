@@ -9,8 +9,9 @@ import FinancialList from './components/FinancialList';
 import AcademicView from './components/AcademicView';
 import CalendarView from './components/CalendarView';
 import UserManagement from './components/UserManagement';
+import TurmaManagement from './components/TurmaManagement';
 import Login from './components/Login';
-import { UserRole, Student, Payment, ClassSession, User, Institution, Teacher } from './types';
+import { UserRole, Student, Payment, ClassSession, User, Institution, Teacher, Turma } from './types';
 import { db } from './services/supabaseService';
 
 const App: React.FC = () => {
@@ -25,6 +26,7 @@ const App: React.FC = () => {
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [classes, setClasses] = useState<ClassSession[]>([]);
+  const [turmas, setTurmas] = useState<Turma[]>([]);
 
   useEffect(() => {
     if (isAuthenticated && currentUser) {
@@ -35,18 +37,20 @@ const App: React.FC = () => {
   const loadAllData = async () => {
     setIsDataSyncing(true);
     try {
-      const [sData, iData, tData, pData, cData] = await Promise.all([
+      const [sData, iData, tData, pData, cData, tuData] = await Promise.all([
         db.students.list().catch(() => []),
         db.institutions.list().catch(() => []),
         db.teachers.list().catch(() => []),
         db.payments.list().catch(() => []),
-        db.classes.list().catch(() => [])
+        db.classes.list().catch(() => []),
+        db.turmas.list().catch(() => [])
       ]);
       setStudents(sData || []);
       setInstitutions(iData || []);
       setTeachers(tData || []);
       setPayments(pData || []);
       setClasses(cData || []);
+      setTurmas(tuData || []);
     } catch (error) {
       console.error("Erro ao carregar dados:", error);
     } finally {
@@ -239,6 +243,8 @@ const App: React.FC = () => {
         return <TeacherList teachers={teachers} onAdd={addTeacher} onUpdate={updateTeacher} onDelete={deleteTeacher} />;
       case 'students':
         return <StudentList students={students} institutions={institutions} onAddStudent={addStudent} onUpdateStudent={updateStudent} />;
+      case 'turmas':
+        return <TurmaManagement students={students} teachers={teachers} />;
       case 'financial':
         return <FinancialList payments={payments} students={students} onAddPayment={addPayment} onUpdatePayment={updatePayment} />;
       case 'calendar':

@@ -10,7 +10,8 @@ import {
   BarChart3, 
   UserCog,
   Building2,
-  Contact
+  Contact,
+  Shapes
 } from 'lucide-react';
 
 export const APP_NAME = "EduBoost";
@@ -28,6 +29,7 @@ export const NAVIGATION_ITEMS = [
   { id: 'institutions', label: 'Instituições', icon: <Building2 size={20} />, roles: [UserRole.ADMIN] },
   { id: 'teachers', label: 'Docentes', icon: <Contact size={20} />, roles: [UserRole.ADMIN] },
   { id: 'students', label: 'Alunos', icon: <Users size={20} />, roles: [UserRole.ADMIN, UserRole.PROFESSOR] },
+  { id: 'turmas', label: 'Turmas', icon: <Shapes size={20} />, roles: [UserRole.ADMIN, UserRole.PROFESSOR] },
   { id: 'academic', label: 'Acadêmico', icon: <BookOpen size={20} />, roles: [UserRole.ADMIN, UserRole.PROFESSOR, UserRole.RESPONSAVEL] },
   { id: 'calendar', label: 'Agenda', icon: <Calendar size={20} />, roles: [UserRole.ADMIN, UserRole.PROFESSOR, UserRole.RESPONSAVEL] },
   { id: 'financial', label: 'Financeiro', icon: <DollarSign size={20} />, roles: [UserRole.ADMIN, UserRole.RESPONSAVEL] },

@@ -41,6 +41,21 @@ export interface Student {
   monthlyFee?: number;
 }
 
+export interface Turma {
+  id: string;
+  name: string;
+  subject: string;
+  teacherId: string;
+  studentIds: string[];
+}
+
+export interface AttendanceRecord {
+  id: string;
+  turmaId: string;
+  date: string;
+  presentStudentIds: string[];
+}
+
 export interface Payment {
   id: string;
   studentId: string;
