@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Search, Plus, MessageSquareCode, X, Edit, Save, DollarSign, Building2 } from 'lucide-react';
+import { Search, Plus, MessageSquareCode, X, Edit, Save, DollarSign, Building2, ChevronDown } from 'lucide-react';
 import { getAcademicInsights } from '../services/geminiService';
 import { Student, Institution } from '../types';
 
@@ -249,14 +249,48 @@ const StudentList: React.FC<StudentListProps> = ({ students, institutions, onAdd
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Série</label>
-                  <input 
-                    type="text" required
-                    placeholder="Ex: 8º Ano"
-                    className="w-full px-5 py-4 bg-slate-50 border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-                    value={formData.grade}
-                    onChange={e => setFormData({...formData, grade: e.target.value})}
-                  />
+                  <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Série / Ciclo Escolar</label>
+                  <div className="relative">
+                    <select 
+                      required
+                      className="w-full px-5 py-4 bg-slate-50 border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none transition-all appearance-none cursor-pointer"
+                      value={formData.grade}
+                      onChange={e => setFormData({...formData, grade: e.target.value})}
+                    >
+                      <option value="">Selecione...</option>
+                      <optgroup label="Ensino Fundamental I">
+                        <option value="1º Ano (Fund I)">1º Ano</option>
+                        <option value="2º Ano (Fund I)">2º Ano</option>
+                        <option value="3º Ano (Fund I)">3º Ano</option>
+                        <option value="4º Ano (Fund I)">4º Ano</option>
+                        <option value="5º Ano (Fund I)">5º Ano</option>
+                      </optgroup>
+                      <optgroup label="Ensino Fundamental II">
+                        <option value="6º Ano (Fund II)">6º Ano</option>
+                        <option value="7º Ano (Fund II)">7º Ano</option>
+                        <option value="8º Ano (Fund II)">8º Ano</option>
+                        <option value="9º Ano (Fund II)">9º Ano</option>
+                      </optgroup>
+                      <optgroup label="Ensino Médio">
+                        <option value="1ª Série (Médio)">1ª Série</option>
+                        <option value="2ª Série (Médio)">2ª Série</option>
+                        <option value="3ª Série (Médio)">3ª Série</option>
+                        <option value="Pré-vestibular">Pré-vestibular / Terceirão</option>
+                      </optgroup>
+                      <optgroup label="Ensino Superior">
+                        <option value="Ensino Superior (Graduação)">Graduação</option>
+                        <option value="Pós-graduação / MBA">Pós-graduação / MBA</option>
+                        <option value="Mestrado / Doutorado">Mestrado / Doutorado</option>
+                      </optgroup>
+                      <optgroup label="Outros">
+                        <option value="EJA">EJA (Jovens e Adultos)</option>
+                        <option value="Curso Preparatório">Curso Preparatório</option>
+                        <option value="Concurso Público">Concurso Público</option>
+                        <option value="Línguas / Outros">Línguas / Outros</option>
+                      </optgroup>
+                    </select>
+                    <ChevronDown size={18} className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                  </div>
                 </div>
               </div>
 
