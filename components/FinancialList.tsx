@@ -121,7 +121,7 @@ const FinancialList: React.FC<FinancialListProps> = ({ payments, students, onAdd
 
     const html2pdf = (window as any).html2pdf;
     if (!html2pdf) {
-      alert("Biblioteca de PDF não carregada. Verifique sua conexão.");
+      alert("Biblioteca de PDF não carregada.");
       return;
     }
 
@@ -131,17 +131,13 @@ const FinancialList: React.FC<FinancialListProps> = ({ payments, students, onAdd
     const studentName = getStudentName(selectedPayment?.studentId || '');
     const fileName = `recibo-${studentName.toLowerCase().replace(/\s+/g, '-')}.pdf`;
 
-    // Configuração refinada para 1 página A4 exata
     const opt = {
-      margin: 0, // Zero margem na biblioteca pois usaremos margens reais no CSS (20mm)
+      margin: 0,
       filename: fileName,
-      image: { type: 'jpeg', quality: 0.98 },
+      image: { type: 'jpeg', quality: 1 },
       html2canvas: { 
         scale: 2, 
-        useCORS: true, 
-        letterRendering: true,
-        scrollX: 0,
-        scrollY: 0,
+        useCORS: true,
         backgroundColor: '#ffffff'
       },
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
@@ -151,11 +147,8 @@ const FinancialList: React.FC<FinancialListProps> = ({ payments, students, onAdd
       .from(element)
       .set(opt)
       .save()
-      .then(() => {
-        setIsGeneratingPDF(false);
-      })
-      .catch((err: any) => {
-        console.error("PDF Error:", err);
+      .then(() => setIsGeneratingPDF(false))
+      .catch(() => {
         alert("Erro ao gerar PDF.");
         setIsGeneratingPDF(false);
       });
@@ -269,7 +262,6 @@ const FinancialList: React.FC<FinancialListProps> = ({ payments, students, onAdd
         </div>
       </div>
 
-      {/* Modal Lançamento */}
       {isModalOpen && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-900/40 backdrop-blur-md p-4 animate-fade-in">
           <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-lg border border-white/20 overflow-hidden">
@@ -280,7 +272,7 @@ const FinancialList: React.FC<FinancialListProps> = ({ payments, students, onAdd
               </button>
             </div>
             
-            <form onSubmit={handleSave} className="p-8 space-y-5 max-h-[70vh] overflow-y-auto custom-scrollbar">
+            <form onSubmit={handleSave} className="p-8 space-y-5">
               <div className="space-y-1">
                 <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Aluno Beneficiário</label>
                 <select 
@@ -296,103 +288,43 @@ const FinancialList: React.FC<FinancialListProps> = ({ payments, students, onAdd
                   {students.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                 </select>
               </div>
-
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Referência Mensal</label>
-                  <select 
-                    className="w-full px-5 py-4 bg-slate-50 border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none"
-                    value={newPay.description}
-                    onChange={e => setNewPay({...newPay, description: e.target.value})}
-                  >
+                  <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Referência</label>
+                  <select className="w-full px-5 py-4 bg-slate-50 border-none rounded-2xl text-sm font-bold" value={newPay.description} onChange={e => setNewPay({...newPay, description: e.target.value})}>
                     {months.map(m => <option key={m} value={m}>{m}</option>)}
                   </select>
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Valor do Título (R$)</label>
-                  <input 
-                    type="number" step="0.01" required
-                    className="w-full px-5 py-4 bg-slate-50 border-none rounded-2xl text-sm font-black focus:ring-2 focus:ring-indigo-500 outline-none"
-                    value={newPay.amount || ''}
-                    onChange={e => setNewPay({...newPay, amount: parseFloat(e.target.value)})}
-                  />
+                  <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Valor (R$)</label>
+                  <input type="number" step="0.01" required className="w-full px-5 py-4 bg-slate-50 border-none rounded-2xl text-sm font-black" value={newPay.amount || ''} onChange={e => setNewPay({...newPay, amount: parseFloat(e.target.value)})} />
                 </div>
               </div>
-
-              <div className="space-y-1">
-                <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Estado do Lançamento</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {(['PAID', 'PENDING', 'OVERDUE'] as const).map((s) => (
-                    <button
-                      key={s}
-                      type="button"
-                      onClick={() => setNewPay({...newPay, status: s})}
-                      className={`py-3 rounded-xl text-[9px] font-black uppercase transition-all border ${
-                        newPay.status === s 
-                        ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg' 
-                        : 'bg-white border-slate-100 text-slate-400'
-                      }`}
-                    >
-                      {statusStyles[s].label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className={`text-[11px] font-black uppercase tracking-widest ml-1 ${newPay.status === 'PAID' ? 'text-slate-400' : 'text-slate-200'}`}>Data Pagamento</label>
-                  <input 
-                    type="date" 
-                    disabled={newPay.status !== 'PAID'}
-                    className={`w-full px-5 py-4 border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none transition-all ${newPay.status === 'PAID' ? 'bg-slate-50' : 'bg-slate-100 cursor-not-allowed opacity-40'}`}
-                    value={newPay.status === 'PAID' ? newPay.date : ''}
-                    onChange={e => setNewPay({...newPay, date: e.target.value})}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Data de Vencimento</label>
-                  <input 
-                    type="date" required
-                    className="w-full px-5 py-4 bg-slate-50 border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none"
-                    value={newPay.dueDate}
-                    onChange={e => setNewPay({...newPay, dueDate: e.target.value})}
-                  />
-                </div>
-              </div>
-
               <div className="pt-6 flex gap-3">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 px-6 py-4 bg-slate-100 text-slate-600 rounded-2xl text-sm font-black hover:bg-slate-200 transition-all">Cancelar</button>
-                <button type="submit" disabled={isSubmitting} className="flex-1 px-6 py-4 bg-indigo-600 text-white rounded-2xl text-sm font-black hover:bg-indigo-700 shadow-xl shadow-indigo-100 transition-all">
-                  {isSubmitting ? 'Processando...' : 'Efetuar Lançamento'}
-                </button>
+                <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 px-6 py-4 bg-slate-100 text-slate-600 rounded-2xl text-sm font-black">Cancelar</button>
+                <button type="submit" className="flex-1 px-6 py-4 bg-indigo-600 text-white rounded-2xl text-sm font-black shadow-xl shadow-indigo-100 transition-all active:scale-95">Confirmar</button>
               </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* Modal Recibo - RIGOROSAMENTE AJUSTADO PARA A4 EM PÁGINA ÚNICA */}
       {isReceiptOpen && selectedPayment && (
         <div className="fixed inset-0 z-[130] flex items-center justify-center bg-slate-900/90 backdrop-blur-md p-4 animate-fade-in overflow-y-auto">
-          <div className="bg-slate-800 rounded-[2.5rem] shadow-2xl w-full max-w-5xl overflow-hidden border border-white/10 my-8">
+          <div className="bg-slate-800 rounded-[2rem] shadow-2xl w-full max-w-5xl overflow-hidden border border-white/10 my-8">
             <div className="p-6 md:p-8 border-b border-slate-700 flex items-center justify-between bg-slate-900 text-white">
               <div className="flex items-center gap-4">
-                <div className="p-3 bg-indigo-600 rounded-2xl text-white">
-                  <FileText size={24} />
-                </div>
+                <div className="p-3 bg-indigo-600 rounded-xl text-white"><FileText size={20} /></div>
                 <div>
-                  <h3 className="font-black text-xl tracking-tight">Recibo de Pagamento</h3>
-                  <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mt-1">Formato A4 Oficial (210x297mm)</p>
+                  <h3 className="font-black text-lg tracking-tight">Recibo Digital</h3>
+                  <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">Ajustado para Folha A4</p>
                 </div>
               </div>
-              <button onClick={() => setIsReceiptOpen(false)} className="hover:bg-white/10 p-2 rounded-2xl transition-all">
-                <X size={28} />
-              </button>
+              <button onClick={() => setIsReceiptOpen(false)} className="hover:bg-white/10 p-2 rounded-2xl transition-all"><X size={24} /></button>
             </div>
 
-            <div className="p-4 md:p-12 bg-slate-700 flex justify-center items-start overflow-x-auto min-h-[60vh]">
-              {/* O PAPEL (A4) - ESTILIZAÇÃO TÉCNICA PARA IMPRESSÃO 1:1 */}
+            <div className="p-4 md:p-8 bg-slate-700 flex justify-center items-center overflow-x-auto min-h-[70vh]">
+              {/* CONTENT AREA RIGOROUSLY ADJUSTED TO A4 (210x297mm) */}
               <div 
                 ref={receiptRef}
                 style={{ 
@@ -403,119 +335,107 @@ const FinancialList: React.FC<FinancialListProps> = ({ payments, students, onAdd
                   backgroundColor: '#ffffff',
                   fontFamily: "'Inter', sans-serif",
                   color: '#1e293b',
-                  padding: '25mm', // Margens padrão comercial
+                  padding: '20mm', // Margens de 2cm solicitadas
                   position: 'relative',
                   overflow: 'hidden',
                   boxSizing: 'border-box',
                   display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'space-between' // Distribui conteúdo para ocupar a página harmoniosamente
+                  flexDirection: 'column'
                 }}
                 className="pdf-canvas shadow-2xl"
               >
-                {/* Cabeçalho */}
-                <div style={{ marginBottom: '20mm' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #f1f5f9', paddingBottom: '10mm' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                      <div style={{ backgroundColor: '#4f46e5', padding: '12px', borderRadius: '14px' }}>
-                        <GraduationCap style={{ color: '#ffffff' }} size={32} />
-                      </div>
-                      <div>
-                        <h2 style={{ fontSize: '28px', fontWeight: '900', color: '#111827', margin: '0', letterSpacing: '-0.04em' }}>EduBoost</h2>
-                        <p style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', color: '#6366f1', margin: '4px 0 0 0', letterSpacing: '0.1em' }}>Educação de Alta Performance</p>
-                      </div>
+                {/* Header Section */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1.5px solid #f1f5f9', paddingBottom: '8mm', marginBottom: '10mm' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{ backgroundColor: '#4f46e5', padding: '10px', borderRadius: '12px' }}>
+                      <GraduationCap style={{ color: '#ffffff' }} size={28} />
                     </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <p style={{ fontSize: '10px', fontWeight: '900', color: '#94a3b8', textTransform: 'uppercase', margin: '0' }}>Comprovante de Pagamento</p>
-                      <p style={{ fontSize: '18px', fontWeight: '900', color: '#111827', margin: '2px 0 0 0' }}># {selectedPayment.id.slice(0, 8).toUpperCase()}</p>
+                    <div>
+                      <h2 style={{ fontSize: '24px', fontWeight: '900', color: '#111827', margin: '0', letterSpacing: '-0.04em' }}>EduBoost</h2>
+                      <p style={{ fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', color: '#6366f1', margin: '2px 0 0 0', letterSpacing: '0.1em' }}>Gestão de Reforço Escolar</p>
+                    </div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <p style={{ fontSize: '9px', fontWeight: '900', color: '#94a3b8', textTransform: 'uppercase', margin: '0' }}>Número do Documento</p>
+                    <p style={{ fontSize: '16px', fontWeight: '900', color: '#111827', margin: '2px 0 0 0' }}># {selectedPayment.id.slice(0, 8).toUpperCase()}</p>
+                  </div>
+                </div>
+
+                {/* Amount Section */}
+                <div style={{ backgroundColor: '#f8fafc', borderRadius: '20px', padding: '10mm', textAlign: 'center', marginBottom: '12mm', border: '1px solid #f1f5f9' }}>
+                  <p style={{ fontSize: '11px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: '8px', margin: '0' }}>Recebemos o valor de</p>
+                  <h1 style={{ fontSize: '48px', fontWeight: '950', color: '#4f46e5', margin: '0', letterSpacing: '-0.03em' }}>{formatCurrency(selectedPayment.amount)}</h1>
+                </div>
+
+                {/* Main Content Section */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '15mm' }}>
+                  <div style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
+                    <p style={{ fontSize: '9px', fontWeight: '900', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '4px', margin: '0' }}>Beneficiário / Aluno</p>
+                    <p style={{ fontSize: '18px', fontWeight: '800', color: '#1e293b', margin: '0' }}>{getStudentName(selectedPayment.studentId)}</p>
+                  </div>
+
+                  <div style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
+                    <p style={{ fontSize: '9px', fontWeight: '900', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '4px', margin: '0' }}>Referente ao Serviço de</p>
+                    <p style={{ fontSize: '18px', fontWeight: '800', color: '#1e293b', margin: '0' }}>{selectedPayment.description}</p>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20mm' }}>
+                    <div style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
+                      <p style={{ fontSize: '9px', fontWeight: '900', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '4px', margin: '0' }}>Data do Pagamento</p>
+                      <p style={{ fontSize: '16px', fontWeight: '800', color: '#1e293b', margin: '0' }}>{selectedPayment.paymentDate ? new Date(selectedPayment.paymentDate + 'T12:00:00').toLocaleDateString('pt-BR') : '---'}</p>
+                    </div>
+                    <div style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
+                      <p style={{ fontSize: '9px', fontWeight: '900', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '4px', margin: '0' }}>Vencimento</p>
+                      <p style={{ fontSize: '16px', fontWeight: '800', color: '#1e293b', margin: '0' }}>{new Date(selectedPayment.dueDate + 'T12:00:00').toLocaleDateString('pt-BR')}</p>
                     </div>
                   </div>
                 </div>
 
-                {/* Corpo do Recibo */}
-                <div style={{ flex: 1 }}>
-                  <div style={{ backgroundColor: '#f8fafc', borderRadius: '24px', padding: '15mm', textAlign: 'center', marginBottom: '15mm' }}>
-                    <p style={{ fontSize: '13px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: '10px', margin: '0' }}>Recebemos o valor de</p>
-                    <h1 style={{ fontSize: '64px', fontWeight: '950', color: '#4f46e5', margin: '0', letterSpacing: '-0.03em' }}>{formatCurrency(selectedPayment.amount)}</h1>
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '25px' }}>
-                    <div style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
-                      <p style={{ fontSize: '10px', fontWeight: '900', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '6px' }}>Proveniente de</p>
-                      <p style={{ fontSize: '20px', fontWeight: '800', color: '#1e293b' }}>{getStudentName(selectedPayment.studentId)}</p>
-                    </div>
-
-                    <div style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
-                      <p style={{ fontSize: '10px', fontWeight: '900', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '6px' }}>Referente à</p>
-                      <p style={{ fontSize: '20px', fontWeight: '800', color: '#1e293b' }}>{selectedPayment.description}</p>
-                    </div>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px' }}>
-                      <div style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
-                        <p style={{ fontSize: '10px', fontWeight: '900', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '6px' }}>Data do Pagamento</p>
-                        <p style={{ fontSize: '18px', fontWeight: '800', color: '#1e293b' }}>{selectedPayment.paymentDate ? new Date(selectedPayment.paymentDate + 'T12:00:00').toLocaleDateString('pt-BR') : '---'}</p>
-                      </div>
-                      <div style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
-                        <p style={{ fontSize: '10px', fontWeight: '900', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '6px' }}>Vencimento</p>
-                        <p style={{ fontSize: '18px', fontWeight: '800', color: '#1e293b' }}>{new Date(selectedPayment.dueDate + 'T12:00:00').toLocaleDateString('pt-BR')}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div style={{ marginTop: '20mm', fontSize: '14px', lineHeight: '1.6', color: '#475569', backgroundColor: '#f1f5f9', padding: '10mm', borderRadius: '16px', fontStyle: 'italic' }}>
-                    Confirmamos que o valor acima descrito foi devidamente creditado em nossa conta, quitando as obrigações financeiras referentes ao período mencionado.
-                  </div>
+                {/* Confirmation Box */}
+                <div style={{ marginTop: '12mm', fontSize: '13px', lineHeight: '1.6', color: '#475569', backgroundColor: '#f1f5f9', padding: '8mm', borderRadius: '14px', fontStyle: 'italic' }}>
+                  Pelo presente, declaramos ter recebido a importância supra descrita, para a qual damos a devida e irrevogável quitação.
                 </div>
 
-                {/* Rodapé e Assinaturas */}
-                <div style={{ marginTop: '30mm' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '15mm' }}>
+                {/* Spacer to push signature down but keep within 297mm */}
+                <div style={{ flex: 1 }}></div>
+
+                {/* Signature and Footer Section */}
+                <div style={{ paddingBottom: '5mm' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '10mm' }}>
                     <div style={{ flex: 1 }}>
-                      <div style={{ width: '85%', borderBottom: '2px solid #1e293b', marginBottom: '12px' }}></div>
-                      <p style={{ fontSize: '14px', fontWeight: '900', color: '#1e293b', margin: '0' }}>EduBoost Gestão Escolar</p>
-                      <p style={{ fontSize: '10px', color: '#64748b', fontWeight: '700', margin: '2px 0 0 0' }}>Autenticação Eletrônica: {selectedPayment.id.toUpperCase()}</p>
+                      <div style={{ width: '80%', borderBottom: '2px solid #1e293b', marginBottom: '8px' }}></div>
+                      <p style={{ fontSize: '12px', fontWeight: '900', color: '#1e293b', margin: '0' }}>EduBoost Gestão de Reforço Escolar</p>
+                      <p style={{ fontSize: '9px', color: '#64748b', fontWeight: '700', margin: '2px 0 0 0' }}>Autenticação: {selectedPayment.id.toUpperCase()}</p>
                     </div>
-                    
                     <div style={{ textAlign: 'center', opacity: 0.8 }}>
-                      <QrCode size={80} style={{ color: '#1e293b', marginBottom: '8px' }} />
-                      <p style={{ fontSize: '8px', fontWeight: '900', color: '#94a3b8', textTransform: 'uppercase' }}>Valide este recibo</p>
+                      <QrCode size={64} style={{ color: '#1e293b', marginBottom: '4px' }} />
+                      <p style={{ fontSize: '7px', fontWeight: '900', color: '#94a3b8', textTransform: 'uppercase', margin: '0' }}>Validar Autenticidade</p>
                     </div>
                   </div>
-
-                  <div style={{ borderTop: '1px dashed #e2e8f0', paddingTop: '10mm', textAlign: 'center' }}>
-                    <p style={{ fontSize: '9px', color: '#94a3b8', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-                      EduBoost Educação Ltda • CNPJ: 00.000.000/0001-00 • eduboost.com.br
+                  <div style={{ borderTop: '1.5px solid #f1f5f9', paddingTop: '6mm', textAlign: 'center' }}>
+                    <p style={{ fontSize: '8px', color: '#94a3b8', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0' }}>
+                      EduBoost Educação Ltda • CNPJ: 00.000.000/0001-00 • Contato: (00) 00000-0000
                     </p>
                   </div>
                 </div>
 
-                {/* Selo Digital Flutuante */}
-                <div style={{ position: 'absolute', top: '120mm', right: '15mm', transform: 'rotate(-15deg)', border: '4px solid #10b981', padding: '10px 25px', borderRadius: '16px', color: '#10b981', display: 'flex', flexDirection: 'column', alignItems: 'center', backgroundColor: '#ffffff', opacity: 0.8, boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}>
-                  <ShieldCheck size={28} />
-                  <p style={{ fontSize: '20px', fontWeight: '950', margin: '2px 0 0 0' }}>QUITADO</p>
+                {/* Digital Stamp Overlay (Better positioned) */}
+                <div style={{ position: 'absolute', bottom: '100mm', right: '15mm', transform: 'rotate(-10deg)', border: '3px solid #10b981', padding: '8px 20px', borderRadius: '12px', color: '#10b981', display: 'flex', flexDirection: 'column', alignItems: 'center', backgroundColor: '#ffffff', opacity: 0.7 }}>
+                  <ShieldCheck size={24} />
+                  <p style={{ fontSize: '16px', fontWeight: '950', margin: '2px 0 0 0' }}>CONFIRMADO</p>
                 </div>
               </div>
             </div>
 
             <div className="p-6 md:p-8 bg-slate-900 border-t border-slate-700 flex flex-col sm:flex-row gap-4">
-              <button 
-                onClick={() => setIsReceiptOpen(false)} 
-                className="flex-1 px-8 py-4 bg-slate-800 text-slate-300 rounded-2xl text-sm font-black hover:bg-slate-700 transition-all border border-slate-700"
-              >
-                Fechar Visualização
-              </button>
-              
+              <button onClick={() => setIsReceiptOpen(false)} className="flex-1 px-8 py-4 bg-slate-800 text-slate-300 rounded-2xl text-sm font-black hover:bg-slate-700 transition-all">Fechar</button>
               <button 
                 onClick={downloadPDF}
                 disabled={isGeneratingPDF}
-                className="flex-[2] px-8 py-4 bg-indigo-600 text-white rounded-2xl text-sm font-black hover:bg-indigo-700 shadow-xl shadow-indigo-500/20 flex items-center justify-center gap-3 transition-all active:scale-95 disabled:opacity-70"
+                className="flex-[2] px-8 py-4 bg-indigo-600 text-white rounded-2xl text-sm font-black hover:bg-indigo-700 shadow-xl shadow-indigo-500/20 flex items-center justify-center gap-3 transition-all disabled:opacity-70"
               >
-                {isGeneratingPDF ? (
-                  <Loader2 className="animate-spin" size={20} />
-                ) : (
-                  <Download size={20} />
-                )}
-                {isGeneratingPDF ? 'Formatando Página...' : 'Baixar Recibo em PDF (A4)'}
+                {isGeneratingPDF ? <Loader2 className="animate-spin" size={20} /> : <Download size={20} />}
+                {isGeneratingPDF ? 'Formatando...' : 'Baixar Recibo (PDF A4)'}
               </button>
             </div>
           </div>
