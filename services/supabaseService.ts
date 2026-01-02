@@ -243,6 +243,16 @@ export const db = {
     }
   },
   attendance: {
+    async list() {
+      const { data, error } = await supabase.from('attendance').select('*').order('date', { ascending: false });
+      if (error) throw error;
+      return (data || []).map(a => ({
+        id: a.id,
+        turmaId: a.turma_id,
+        date: a.date,
+        presentStudentIds: a.present_student_ids || []
+      })) as AttendanceRecord[];
+    },
     async getByTurmaAndDate(turmaId: string, date: string) {
       const { data, error } = await supabase
         .from('attendance')
