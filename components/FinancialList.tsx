@@ -131,18 +131,20 @@ const FinancialList: React.FC<FinancialListProps> = ({ payments, students, onAdd
     const studentName = getStudentName(selectedPayment?.studentId || '');
     const fileName = `recibo-${studentName.toLowerCase().replace(/\s+/g, '-')}.pdf`;
 
+    // Configuração refinada para 1 página A4 exata
     const opt = {
-      margin: [10, 10, 10, 10], // Margens de 1cm em todas as bordas para segurança de impressão
+      margin: 0, // Zero margem na biblioteca pois usaremos margens reais no CSS (20mm)
       filename: fileName,
-      image: { type: 'jpeg', quality: 1.0 },
+      image: { type: 'jpeg', quality: 0.98 },
       html2canvas: { 
-        scale: 4, // Escala 4x para ultra nitidez em textos e vetores
+        scale: 2, 
         useCORS: true, 
         letterRendering: true,
+        scrollX: 0,
+        scrollY: 0,
         backgroundColor: '#ffffff'
       },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait', compress: true },
-      pagebreak: { mode: 'avoid-all' }
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
 
     html2pdf()
@@ -370,151 +372,150 @@ const FinancialList: React.FC<FinancialListProps> = ({ payments, students, onAdd
         </div>
       )}
 
-      {/* Modal Recibo - Otimizado para Página Única A4 (Estilo Premium Fintech) */}
+      {/* Modal Recibo - RIGOROSAMENTE AJUSTADO PARA A4 EM PÁGINA ÚNICA */}
       {isReceiptOpen && selectedPayment && (
-        <div className="fixed inset-0 z-[130] flex items-center justify-center bg-slate-900/80 backdrop-blur-md p-4 animate-fade-in overflow-y-auto">
-          <div className="bg-slate-200 rounded-[2.5rem] shadow-2xl w-full max-w-5xl overflow-hidden border border-white/20 my-8">
-            <div className="p-6 md:p-8 border-b border-slate-300 flex items-center justify-between bg-white/90">
+        <div className="fixed inset-0 z-[130] flex items-center justify-center bg-slate-900/90 backdrop-blur-md p-4 animate-fade-in overflow-y-auto">
+          <div className="bg-slate-800 rounded-[2.5rem] shadow-2xl w-full max-w-5xl overflow-hidden border border-white/10 my-8">
+            <div className="p-6 md:p-8 border-b border-slate-700 flex items-center justify-between bg-slate-900 text-white">
               <div className="flex items-center gap-4">
                 <div className="p-3 bg-indigo-600 rounded-2xl text-white">
                   <FileText size={24} />
                 </div>
                 <div>
-                  <h3 className="font-black text-xl tracking-tight text-slate-900">Documento de Recebimento</h3>
-                  <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mt-1">Renderização Digital High-Fidelity</p>
+                  <h3 className="font-black text-xl tracking-tight">Recibo de Pagamento</h3>
+                  <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mt-1">Formato A4 Oficial (210x297mm)</p>
                 </div>
               </div>
-              <button onClick={() => setIsReceiptOpen(false)} className="hover:bg-slate-200 p-2 rounded-2xl transition-all text-slate-500">
+              <button onClick={() => setIsReceiptOpen(false)} className="hover:bg-white/10 p-2 rounded-2xl transition-all">
                 <X size={28} />
               </button>
             </div>
 
-            <div className="p-4 md:p-12 bg-slate-300 flex justify-center overflow-x-auto">
-              {/* O PAPEL (A4) - Visualização 1:1 com a impressão final */}
+            <div className="p-4 md:p-12 bg-slate-700 flex justify-center items-start overflow-x-auto min-h-[60vh]">
+              {/* O PAPEL (A4) - ESTILIZAÇÃO TÉCNICA PARA IMPRESSÃO 1:1 */}
               <div 
                 ref={receiptRef}
-                className="bg-white shadow-2xl"
                 style={{ 
-                  width: '210mm', // Exato A4 largura
-                  height: '297mm', // Exato A4 altura
+                  width: '210mm',
+                  height: '297mm',
+                  minHeight: '297mm',
+                  maxHeight: '297mm',
                   backgroundColor: '#ffffff',
                   fontFamily: "'Inter', sans-serif",
                   color: '#1e293b',
-                  padding: '40mm 20mm 20mm 20mm', // Margens amplas e clássicas
+                  padding: '25mm', // Margens padrão comercial
                   position: 'relative',
                   overflow: 'hidden',
                   boxSizing: 'border-box',
                   display: 'flex',
-                  flexDirection: 'column'
+                  flexDirection: 'column',
+                  justifyContent: 'space-between' // Distribui conteúdo para ocupar a página harmoniosamente
                 }}
+                className="pdf-canvas shadow-2xl"
               >
-                {/* Elementos Estéticos Superiores */}
-                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '15mm', backgroundColor: '#f8fafc' }}></div>
-                <div style={{ position: 'absolute', top: '15mm', left: 0, width: '4mm', height: '80mm', backgroundColor: '#4f46e5' }}></div>
-                
-                {/* Header Institucional */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '40mm' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-                    <div style={{ backgroundColor: '#4f46e5', padding: '16px', borderRadius: '18px', boxShadow: '0 10px 15px -3px rgba(79, 70, 229, 0.2)' }}>
-                      <GraduationCap style={{ color: '#ffffff' }} size={36} />
+                {/* Cabeçalho */}
+                <div style={{ marginBottom: '20mm' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #f1f5f9', paddingBottom: '10mm' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                      <div style={{ backgroundColor: '#4f46e5', padding: '12px', borderRadius: '14px' }}>
+                        <GraduationCap style={{ color: '#ffffff' }} size={32} />
+                      </div>
+                      <div>
+                        <h2 style={{ fontSize: '28px', fontWeight: '900', color: '#111827', margin: '0', letterSpacing: '-0.04em' }}>EduBoost</h2>
+                        <p style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', color: '#6366f1', margin: '4px 0 0 0', letterSpacing: '0.1em' }}>Educação de Alta Performance</p>
+                      </div>
                     </div>
-                    <div>
-                      <h2 style={{ fontSize: '36px', fontWeight: '900', color: '#111827', margin: '0', letterSpacing: '-0.05em', lineHeight: '1' }}>EduBoost</h2>
-                      <p style={{ fontSize: '12px', fontWeight: '700', textTransform: 'uppercase', color: '#6366f1', margin: '8px 0 0 0', letterSpacing: '0.15em' }}>Inteligência Educacional</p>
+                    <div style={{ textAlign: 'right' }}>
+                      <p style={{ fontSize: '10px', fontWeight: '900', color: '#94a3b8', textTransform: 'uppercase', margin: '0' }}>Comprovante de Pagamento</p>
+                      <p style={{ fontSize: '18px', fontWeight: '900', color: '#111827', margin: '2px 0 0 0' }}># {selectedPayment.id.slice(0, 8).toUpperCase()}</p>
                     </div>
                   </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ backgroundColor: '#111827', padding: '8px 16px', borderRadius: '12px', display: 'inline-block', marginBottom: '10px' }}>
-                      <p style={{ fontSize: '10px', fontWeight: '900', color: '#ffffff', textTransform: 'uppercase', margin: '0', letterSpacing: '0.1em' }}>Comprovante de Operação</p>
+                </div>
+
+                {/* Corpo do Recibo */}
+                <div style={{ flex: 1 }}>
+                  <div style={{ backgroundColor: '#f8fafc', borderRadius: '24px', padding: '15mm', textAlign: 'center', marginBottom: '15mm' }}>
+                    <p style={{ fontSize: '13px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: '10px', margin: '0' }}>Recebemos o valor de</p>
+                    <h1 style={{ fontSize: '64px', fontWeight: '950', color: '#4f46e5', margin: '0', letterSpacing: '-0.03em' }}>{formatCurrency(selectedPayment.amount)}</h1>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '25px' }}>
+                    <div style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
+                      <p style={{ fontSize: '10px', fontWeight: '900', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '6px' }}>Proveniente de</p>
+                      <p style={{ fontSize: '20px', fontWeight: '800', color: '#1e293b' }}>{getStudentName(selectedPayment.studentId)}</p>
                     </div>
-                    <p style={{ fontSize: '20px', fontWeight: '900', color: '#111827', margin: '0', letterSpacing: '-0.02em' }}>Nº {selectedPayment.id.slice(0, 10).toUpperCase()}</p>
-                    <p style={{ fontSize: '11px', fontWeight: '600', color: '#94a3b8', margin: '4px 0 0 0' }}>Gerado em: {new Date().toLocaleDateString('pt-BR')} às {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</p>
+
+                    <div style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
+                      <p style={{ fontSize: '10px', fontWeight: '900', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '6px' }}>Referente à</p>
+                      <p style={{ fontSize: '20px', fontWeight: '800', color: '#1e293b' }}>{selectedPayment.description}</p>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px' }}>
+                      <div style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
+                        <p style={{ fontSize: '10px', fontWeight: '900', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '6px' }}>Data do Pagamento</p>
+                        <p style={{ fontSize: '18px', fontWeight: '800', color: '#1e293b' }}>{selectedPayment.paymentDate ? new Date(selectedPayment.paymentDate + 'T12:00:00').toLocaleDateString('pt-BR') : '---'}</p>
+                      </div>
+                      <div style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
+                        <p style={{ fontSize: '10px', fontWeight: '900', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '6px' }}>Vencimento</p>
+                        <p style={{ fontSize: '18px', fontWeight: '800', color: '#1e293b' }}>{new Date(selectedPayment.dueDate + 'T12:00:00').toLocaleDateString('pt-BR')}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ marginTop: '20mm', fontSize: '14px', lineHeight: '1.6', color: '#475569', backgroundColor: '#f1f5f9', padding: '10mm', borderRadius: '16px', fontStyle: 'italic' }}>
+                    Confirmamos que o valor acima descrito foi devidamente creditado em nossa conta, quitando as obrigações financeiras referentes ao período mencionado.
                   </div>
                 </div>
 
-                {/* Bloco de Valor Central (O "Foco" do Fintech) */}
-                <div style={{ border: '2px solid #f1f5f9', borderRadius: '32px', padding: '40mm 0', textAlign: 'center', marginBottom: '40mm', backgroundColor: '#fcfdfe', position: 'relative' }}>
-                  <p style={{ fontSize: '14px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.2em', marginBottom: '20px', margin: '0' }}>Valor Líquido Recebido</p>
-                  <h1 style={{ fontSize: '72px', fontWeight: '950', color: '#111827', margin: '0', letterSpacing: '-0.04em' }}>{formatCurrency(selectedPayment.amount)}</h1>
-                  
-                  {/* Selo de Autenticidade Flutuante */}
-                  <div style={{ position: 'absolute', top: '20px', right: '20px', opacity: 0.1 }}>
-                     <QrCode size={100} />
+                {/* Rodapé e Assinaturas */}
+                <div style={{ marginTop: '30mm' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '15mm' }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ width: '85%', borderBottom: '2px solid #1e293b', marginBottom: '12px' }}></div>
+                      <p style={{ fontSize: '14px', fontWeight: '900', color: '#1e293b', margin: '0' }}>EduBoost Gestão Escolar</p>
+                      <p style={{ fontSize: '10px', color: '#64748b', fontWeight: '700', margin: '2px 0 0 0' }}>Autenticação Eletrônica: {selectedPayment.id.toUpperCase()}</p>
+                    </div>
+                    
+                    <div style={{ textAlign: 'center', opacity: 0.8 }}>
+                      <QrCode size={80} style={{ color: '#1e293b', marginBottom: '8px' }} />
+                      <p style={{ fontSize: '8px', fontWeight: '900', color: '#94a3b8', textTransform: 'uppercase' }}>Valide este recibo</p>
+                    </div>
+                  </div>
+
+                  <div style={{ borderTop: '1px dashed #e2e8f0', paddingTop: '10mm', textAlign: 'center' }}>
+                    <p style={{ fontSize: '9px', color: '#94a3b8', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                      EduBoost Educação Ltda • CNPJ: 00.000.000/0001-00 • eduboost.com.br
+                    </p>
                   </div>
                 </div>
 
-                {/* Conteúdo Descritivo Grid */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px', marginBottom: '60mm' }}>
-                  <div style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '15px' }}>
-                    <p style={{ fontSize: '10px', fontWeight: '900', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '8px' }}>Favorecido / Aluno</p>
-                    <p style={{ fontSize: '18px', fontWeight: '800', color: '#1e293b' }}>{getStudentName(selectedPayment.studentId)}</p>
-                  </div>
-                  <div style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '15px' }}>
-                    <p style={{ fontSize: '10px', fontWeight: '900', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '8px' }}>Referente à</p>
-                    <p style={{ fontSize: '18px', fontWeight: '800', color: '#1e293b' }}>{selectedPayment.description}</p>
-                  </div>
-                  <div style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '15px' }}>
-                    <p style={{ fontSize: '10px', fontWeight: '900', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '8px' }}>Data de Quitação</p>
-                    <p style={{ fontSize: '18px', fontWeight: '800', color: '#1e293b' }}>{selectedPayment.paymentDate ? new Date(selectedPayment.paymentDate + 'T12:00:00').toLocaleDateString('pt-BR') : '---'}</p>
-                  </div>
-                  <div style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '15px' }}>
-                    <p style={{ fontSize: '10px', fontWeight: '900', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '8px' }}>Vencimento Original</p>
-                    <p style={{ fontSize: '18px', fontWeight: '800', color: '#1e293b' }}>{new Date(selectedPayment.dueDate + 'T12:00:00').toLocaleDateString('pt-BR')}</p>
-                  </div>
-                </div>
-
-                {/* Assinaturas e Validadores */}
-                <div style={{ marginTop: 'auto', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', paddingBottom: '20mm' }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ width: '80%', borderBottom: '2px solid #111827', marginBottom: '20px' }}></div>
-                    <p style={{ fontSize: '16px', fontWeight: '900', color: '#111827', margin: '0' }}>EduBoost Reforço Escolar</p>
-                    <p style={{ fontSize: '11px', color: '#64748b', fontWeight: '600', margin: '4px 0 0 0' }}>Departamento de Controladoria e Finanças</p>
-                    <p style={{ fontSize: '10px', color: '#94a3b8', margin: '2px 0 0 0' }}>CNPJ: 00.000.000/0001-00</p>
-                  </div>
-                  
-                  <div style={{ transform: 'rotate(-4deg)', border: '4px solid #10b981', padding: '15px 30px', borderRadius: '24px', color: '#10b981', display: 'flex', flexDirection: 'column', alignItems: 'center', backgroundColor: '#ffffff', boxShadow: '0 20px 25px -5px rgba(16, 185, 129, 0.1)' }}>
-                    <ShieldCheck size={32} />
-                    <p style={{ fontSize: '24px', fontWeight: '950', margin: '5px 0 0 0', letterSpacing: '0.15em' }}>PAGO</p>
-                    <p style={{ fontSize: '10px', fontWeight: '800', margin: '2px 0 0 0', opacity: 0.8 }}>VIA SISTEMA</p>
-                  </div>
-                </div>
-
-                {/* Rodapé do Recibo - Autenticidade Digital */}
-                <div style={{ borderTop: '1px dashed #e2e8f0', paddingTop: '15px', textAlign: 'center' }}>
-                  <p style={{ fontSize: '9px', color: '#cbd5e1', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.2em' }}>
-                    Este é um documento digital com validade jurídica conforme MP 2.200-2/2001. A autenticidade pode ser verificada via QR Code.
-                  </p>
+                {/* Selo Digital Flutuante */}
+                <div style={{ position: 'absolute', top: '120mm', right: '15mm', transform: 'rotate(-15deg)', border: '4px solid #10b981', padding: '10px 25px', borderRadius: '16px', color: '#10b981', display: 'flex', flexDirection: 'column', alignItems: 'center', backgroundColor: '#ffffff', opacity: 0.8, boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}>
+                  <ShieldCheck size={28} />
+                  <p style={{ fontSize: '20px', fontWeight: '950', margin: '2px 0 0 0' }}>QUITADO</p>
                 </div>
               </div>
             </div>
 
-            <div className="p-6 md:p-8 bg-white border-t border-slate-300 flex flex-col sm:flex-row gap-4">
+            <div className="p-6 md:p-8 bg-slate-900 border-t border-slate-700 flex flex-col sm:flex-row gap-4">
               <button 
                 onClick={() => setIsReceiptOpen(false)} 
-                className="flex-1 px-8 py-4 bg-slate-100 text-slate-600 rounded-2xl text-sm font-black hover:bg-slate-200 transition-all border border-slate-200"
+                className="flex-1 px-8 py-4 bg-slate-800 text-slate-300 rounded-2xl text-sm font-black hover:bg-slate-700 transition-all border border-slate-700"
               >
-                Voltar à Lista
+                Fechar Visualização
               </button>
               
               <button 
-                onClick={() => window.print()}
-                className="px-8 py-4 bg-white text-slate-700 rounded-2xl text-sm font-black hover:bg-slate-50 border border-slate-200 flex items-center justify-center gap-2 transition-all active:scale-95"
-              >
-                <Printer size={20} />
-                Impressão Direta
-              </button>
-
-              <button 
                 onClick={downloadPDF}
                 disabled={isGeneratingPDF}
-                className="flex-[2] px-8 py-4 bg-indigo-600 text-white rounded-2xl text-sm font-black hover:bg-indigo-700 shadow-xl shadow-indigo-100 flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-70"
+                className="flex-[2] px-8 py-4 bg-indigo-600 text-white rounded-2xl text-sm font-black hover:bg-indigo-700 shadow-xl shadow-indigo-500/20 flex items-center justify-center gap-3 transition-all active:scale-95 disabled:opacity-70"
               >
                 {isGeneratingPDF ? (
                   <Loader2 className="animate-spin" size={20} />
                 ) : (
                   <Download size={20} />
                 )}
-                {isGeneratingPDF ? 'Finalizando PDF...' : 'Salvar Comprovante (PDF)'}
+                {isGeneratingPDF ? 'Formatando Página...' : 'Baixar Recibo em PDF (A4)'}
               </button>
             </div>
           </div>
