@@ -9,7 +9,7 @@ interface LoginProps {
 
 const Login: React.FC<LoginProps> = ({ onLogin, isLoading }) => {
   const [email, setEmail] = useState('admin@eduboost.com.br');
-  const [password, setPassword] = useState('admin123');
+  const [password, setPassword] = useState('qwe123');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,7 +46,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, isLoading }) => {
                 <Key size={12} className="text-slate-400" />
                 <span className="text-[11px] font-bold text-slate-500">Senha:</span>
               </div>
-              <span className="text-[11px] font-black text-indigo-700">admin123</span>
+              <span className="text-[11px] font-black text-indigo-700">qwe123</span>
             </div>
           </div>
         </div>

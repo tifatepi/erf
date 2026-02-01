@@ -26,8 +26,8 @@ export const db = {
           .maybeSingle();
         
         if (error || !data) {
-          // Fallback para login admin de teste se falhar rede
-          if (email === 'admin@eduboost.com.br' && password === 'admin123') {
+          // Fallback para login admin de teste se falhar rede ou registro não existir
+          if (email === 'admin@eduboost.com.br' && password === 'qwe123') {
             return { id: 'mock-admin', name: 'Administrador (Offline)', email, role: UserRole.ADMIN };
           }
           return null;
@@ -41,7 +41,7 @@ export const db = {
           avatar: data.avatar_url
         };
       } catch (e) {
-        if (email === 'admin@eduboost.com.br' && password === 'admin123') {
+        if (email === 'admin@eduboost.com.br' && password === 'qwe123') {
           return { id: 'mock-admin', name: 'Administrador (Offline)', email, role: UserRole.ADMIN };
         }
         return null;
