@@ -5,6 +5,7 @@ import {
 } from 'recharts';
 import { Users, BookOpen, DollarSign, Calendar, TrendingUp, AlertTriangle, Clock, HandCoins, ChevronRight, Wallet } from 'lucide-react';
 import { ClassSession, Student, Payment } from '../types';
+import { timeService } from '../services/timeService';
 
 interface DashboardProps {
   stats: {
@@ -35,22 +36,32 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, classes, students, payment
     { label: 'Atrasos', value: stats.pending.toString(), icon: <AlertTriangle size={18} />, color: 'bg-amber-500', trend: '-2%' },
   ];
 
-  const getStudentName = (id: string) => students.find(s => String(s.id) === String(id))?.name || 'Aluno Removido';
+  const getStudentName = (id: string) => {
+    if (!students || students.length === 0) return 'Carregando...';
+    return students.find(s => String(s.id) === String(id))?.name || 'Aluno Removido';
+  };
 
-  // Lógica robusta para filtrar Contas a Receber (30 dias a partir do 1º dia do mês atual)
+  // Lógica robusta para filtrar Contas a Receber (30 dias a partir do 1º dia do mês atual) usando TimeService
   const receivables = React.useMemo(() => {
-    const now = new Date();
+    if (!payments) return [];
+    
+    // Pega a data oficial do TimeService
+    const now = timeService.now();
+    
     // Normaliza para o primeiro dia do mês atual às 00:00:00
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0);
     // 30 dias após o início do mês
     const limitDate = new Date(startOfMonth.getTime() + (30 * 24 * 60 * 60 * 1000));
 
-    return (payments || [])
+    return payments
       .filter(p => {
         // Ignora pagos
         if (p.status === 'PAID') return false;
         
-        // Converte data de vencimento string para objeto Date
+        // Verifica se existe data de vencimento
+        if (!p.dueDate) return false;
+        
+        // Converte data de vencimento string para objeto Date com horário fixo para evitar timezone shift
         const dueDate = new Date(p.dueDate + 'T12:00:00');
         
         // Verifica se está dentro do intervalo
@@ -74,13 +85,19 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, classes, students, payment
           <p className="text-slate-500 font-medium text-sm">Acompanhe os principais indicadores da escola.</p>
         </div>
         <div className="flex gap-2">
-          <div className="bg-emerald-50 border border-emerald-100 px-4 py-2 rounded-2xl hidden md:flex items-center gap-3">
+          <div className="bg-emerald-50 border border-emerald-100 px-4 py-2 rounded-2xl hidden md:flex items-center gap-3 transition-all hover:bg-emerald-100">
             <Wallet className="text-emerald-500" size={18} />
             <div>
-              <p className="text-[9px] font-black text-emerald-400 uppercase tracking-widest">Previsto (30 dias)</p>
+              <p className="text-[9px] font-black text-emerald-400 uppercase tracking-widest leading-tight">Previsto Periodo</p>
               <p className="text-sm font-black text-emerald-700 leading-none">{formatCurrency(totalReceivablePeriod)}</p>
             </div>
           </div>
+          {timeService.getIsSynced() && (
+            <div className="bg-slate-100 border border-slate-200 px-3 py-2 rounded-2xl flex items-center gap-2">
+              <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div>
+              <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none">Hora Oficial Sincronizada</p>
+            </div>
+          )}
         </div>
       </div>
 
@@ -174,13 +191,13 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, classes, students, payment
       </div>
 
       {/* Seção Corrigida: Contas a Receber */}
-      <div className="bg-white p-6 md:p-8 rounded-[2rem] shadow-sm border border-slate-100">
+      <div className="bg-white p-6 md:p-8 rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
           <div className="flex items-center gap-3">
             <div className="w-1.5 h-6 bg-emerald-500 rounded-full"></div>
             <div>
               <h3 className="text-lg font-black text-slate-900">Contas a Receber</h3>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Previsão dos próximos 30 dias (a partir do dia 1º)</p>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Compromissos dos próximos 30 dias (Base: dia 1º)</p>
             </div>
           </div>
           <button className="text-[10px] font-black text-indigo-600 uppercase tracking-widest hover:underline flex items-center gap-1 group">
@@ -188,7 +205,7 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, classes, students, payment
           </button>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto -mx-6 px-6">
           <table className="w-full text-left min-w-[600px]">
             <thead>
               <tr className="text-slate-400 text-[10px] font-black uppercase tracking-widest border-b border-slate-50">
@@ -201,17 +218,17 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, classes, students, payment
             <tbody className="divide-y divide-slate-50">
               {receivables.length > 0 ? (
                 receivables.map((p) => {
-                  const isOverdue = new Date(p.dueDate + 'T23:59:59') < new Date();
+                  const isOverdue = new Date(p.dueDate + 'T23:59:59') < timeService.now();
                   return (
                     <tr key={p.id} className="group hover:bg-slate-50/50 transition-all">
                       <td className="py-4 px-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center text-[11px] font-black shadow-inner">
+                          <div className="w-9 h-9 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center text-[11px] font-black shadow-inner group-hover:bg-indigo-600 group-hover:text-white transition-colors">
                             {getStudentName(p.studentId).charAt(0)}
                           </div>
                           <div>
                             <p className="text-sm font-bold text-slate-700">{getStudentName(p.studentId)}</p>
-                            <p className="text-[9px] text-slate-400 font-medium">{p.description}</p>
+                            <p className="text-[9px] text-slate-400 font-medium truncate max-w-[150px]">{p.description}</p>
                           </div>
                         </div>
                       </td>
@@ -241,11 +258,12 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, classes, students, payment
               ) : (
                 <tr>
                   <td colSpan={4} className="py-16 text-center">
-                    <div className="flex flex-col items-center justify-center opacity-30">
+                    <div className="flex flex-col items-center justify-center opacity-40">
                       <div className="p-4 bg-slate-100 rounded-full mb-3">
                         <HandCoins size={40} className="text-slate-400" />
                       </div>
-                      <p className="text-xs font-black uppercase tracking-widest text-slate-500">Nenhuma cobrança prevista para este período</p>
+                      <p className="text-[11px] font-black uppercase tracking-widest text-slate-500">Nenhuma cobrança registrada para este período</p>
+                      <p className="text-[10px] text-slate-400 mt-1 font-medium italic">Registre novas mensalidades no módulo Financeiro.</p>
                     </div>
                   </td>
                 </tr>
@@ -257,7 +275,7 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, classes, students, payment
         {receivables.length > 0 && (
           <div className="mt-6 pt-6 border-t border-slate-50 flex justify-end">
             <div className="text-right">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Subtotal do Período</p>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Previsto do Período</p>
               <p className="text-lg font-black text-indigo-600">{formatCurrency(totalReceivablePeriod)}</p>
             </div>
           </div>

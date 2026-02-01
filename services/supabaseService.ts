@@ -1,3 +1,4 @@
+
 import { supabase } from '../lib/supabase';
 import { Student, Payment, ClassSession, User, UserRole, Institution, Teacher, Turma, AttendanceRecord } from '../types';
 
@@ -150,7 +151,6 @@ export const db = {
       } catch (e) {
         const items = getLocal<Teacher[]>('teachers', []);
         const newItem = { id: Math.random().toString(), ...teacher } as Teacher;
-        // Fix: Use 'newItem' instead of 'newUser' which was not defined in this scope.
         setLocal('teachers', [...items, newItem]);
         return newItem;
       }
@@ -317,7 +317,13 @@ export const db = {
         const { data, error } = await supabase.from('payments').select('*').order('due_date', { ascending: false });
         if (error) throw error;
         return (data || []).map(p => ({
-          id: String(p.id), studentId: String(p.student_id), amount: Number(p.amount), dueDate: p.due_date, paymentDate: p.payment_date, status: p.status, description: p.description
+          id: String(p.id), 
+          studentId: String(p.student_id), 
+          amount: Number(p.amount), 
+          dueDate: p.due_date, 
+          paymentDate: p.payment_date, // Mapeado corretamente para camelCase
+          status: p.status, 
+          description: p.description
         })) as Payment[];
       } catch (e) {
         return getLocal<Payment[]>('payments', []);
@@ -330,7 +336,15 @@ export const db = {
         }]).select();
         if (error) throw error;
         const p = data[0];
-        return { id: String(p.id), studentId: String(p.student_id), amount: Number(p.amount), dueDate: p.due_date, paymentDate: p.payment_date, status: p.status, description: p.description };
+        return { 
+          id: String(p.id), 
+          studentId: String(p.student_id), 
+          amount: Number(p.amount), 
+          dueDate: p.due_date, 
+          paymentDate: p.payment_date, 
+          status: p.status, 
+          description: p.description 
+        };
       } catch (e) {
         const items = getLocal<Payment[]>('payments', []);
         const newItem = { id: Math.random().toString(), ...payment } as Payment;

@@ -16,6 +16,7 @@ import DelinquencyView from './components/DelinquencyView';
 import Login from './components/Login';
 import { UserRole, Student, Payment, ClassSession, User, Institution, Teacher, Turma } from './types';
 import { db } from './services/supabaseService';
+import { timeService } from './services/timeService';
 
 const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -30,6 +31,11 @@ const App: React.FC = () => {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [classes, setClasses] = useState<ClassSession[]>([]);
   const [turmas, setTurmas] = useState<Turma[]>([]);
+
+  // Sincronizar hora oficial no Boot
+  useEffect(() => {
+    timeService.sync();
+  }, []);
 
   useEffect(() => {
     if (isAuthenticated && currentUser) {

@@ -20,6 +20,7 @@ import {
   Calendar,
   ChevronRight
 } from 'lucide-react';
+import { timeService } from '../services/timeService';
 
 interface FinancialListProps {
   payments: Payment[];
@@ -37,14 +38,15 @@ const FinancialList: React.FC<FinancialListProps> = ({ payments, students, onAdd
   const [searchTerm, setSearchTerm] = useState('');
   const receiptRef = useRef<HTMLDivElement>(null);
   
-  const today = new Date().toISOString().split('T')[0];
+  // Usa a data oficial do TimeService
+  const todayISO = timeService.todayISO();
   
   const [newPay, setNewPay] = useState({ 
     studentId: '', 
     amount: 0, 
     description: 'Janeiro', 
-    date: today,
-    dueDate: today,
+    date: todayISO,
+    dueDate: todayISO,
     status: 'PENDING' as 'PAID' | 'PENDING' | 'OVERDUE'
   });
 
@@ -80,7 +82,7 @@ const FinancialList: React.FC<FinancialListProps> = ({ payments, students, onAdd
         status: newPay.status
       });
       setIsModalOpen(false);
-      setNewPay({ studentId: '', amount: 0, description: 'Janeiro', date: today, dueDate: today, status: 'PENDING' });
+      setNewPay({ studentId: '', amount: 0, description: 'Janeiro', date: todayISO, dueDate: todayISO, status: 'PENDING' });
     } catch (err: any) {
       alert(`Erro ao salvar: ${err.message || 'Erro na comunicação com o servidor'}`);
     } finally {
@@ -93,7 +95,7 @@ const FinancialList: React.FC<FinancialListProps> = ({ payments, students, onAdd
     try {
       await onUpdatePayment(payment.id, {
         status: 'PAID',
-        paymentDate: today
+        paymentDate: todayISO
       });
     } catch (err) {
       alert("Erro ao atualizar pagamento.");
