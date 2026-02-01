@@ -3,7 +3,7 @@ import React from 'react';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
-import { Users, BookOpen, DollarSign, Calendar, TrendingUp, AlertTriangle, Clock, HandCoins, ChevronRight } from 'lucide-react';
+import { Users, BookOpen, DollarSign, Calendar, TrendingUp, AlertTriangle, Clock, HandCoins, ChevronRight, Wallet } from 'lucide-react';
 import { ClassSession, Student, Payment } from '../types';
 
 interface DashboardProps {
@@ -35,23 +35,32 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, classes, students, payment
     { label: 'Atrasos', value: stats.pending.toString(), icon: <AlertTriangle size={18} />, color: 'bg-amber-500', trend: '-2%' },
   ];
 
-  const getStudentName = (id: string) => students.find(s => s.id === id)?.name || 'Desconhecido';
+  const getStudentName = (id: string) => students.find(s => String(s.id) === String(id))?.name || 'Aluno Removido';
 
-  // Lógica para filtrar Contas a Receber (Próximos 30 dias a partir do 1º dia do mês atual)
+  // Lógica robusta para filtrar Contas a Receber (30 dias a partir do 1º dia do mês atual)
   const receivables = React.useMemo(() => {
     const now = new Date();
-    const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const thirtyDaysLater = new Date(firstDayOfMonth.getTime() + (30 * 24 * 60 * 60 * 1000));
+    // Normaliza para o primeiro dia do mês atual às 00:00:00
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0);
+    // 30 dias após o início do mês
+    const limitDate = new Date(startOfMonth.getTime() + (30 * 24 * 60 * 60 * 1000));
 
-    return payments
+    return (payments || [])
       .filter(p => {
+        // Ignora pagos
         if (p.status === 'PAID') return false;
+        
+        // Converte data de vencimento string para objeto Date
         const dueDate = new Date(p.dueDate + 'T12:00:00');
-        return dueDate >= firstDayOfMonth && dueDate <= thirtyDaysLater;
+        
+        // Verifica se está dentro do intervalo
+        return dueDate >= startOfMonth && dueDate <= limitDate;
       })
       .sort((a, b) => a.dueDate.localeCompare(b.dueDate))
-      .slice(0, 5); // Mostra os 5 primeiros mais urgentes
+      .slice(0, 8); // Mostra até 8 registros no dashboard
   }, [payments]);
+
+  const totalReceivablePeriod = receivables.reduce((acc, curr) => acc + curr.amount, 0);
 
   const formatCurrency = (val: number) => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
@@ -64,9 +73,15 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, classes, students, payment
           <h2 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">Resumo Geral</h2>
           <p className="text-slate-500 font-medium text-sm">Acompanhe os principais indicadores da escola.</p>
         </div>
-        <button className="bg-white border border-slate-200 text-slate-700 px-5 py-2.5 rounded-2xl text-sm font-bold hover:bg-slate-50 shadow-sm transition-all active:scale-95">
-          Relatório Completo
-        </button>
+        <div className="flex gap-2">
+          <div className="bg-emerald-50 border border-emerald-100 px-4 py-2 rounded-2xl hidden md:flex items-center gap-3">
+            <Wallet className="text-emerald-500" size={18} />
+            <div>
+              <p className="text-[9px] font-black text-emerald-400 uppercase tracking-widest">Previsto (30 dias)</p>
+              <p className="text-sm font-black text-emerald-700 leading-none">{formatCurrency(totalReceivablePeriod)}</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Stats Grid */}
@@ -127,7 +142,7 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, classes, students, payment
              <div className="w-1.5 h-6 bg-amber-500 rounded-full"></div>
             Próximas Aulas
           </h3>
-          <div className="space-y-4 flex-1 overflow-y-auto max-h-[400px] lg:max-h-none pr-1">
+          <div className="space-y-4 flex-1 overflow-y-auto max-h-[400px] lg:max-h-none pr-1 custom-scrollbar">
             {classes.filter(c => c.status === 'SCHEDULED').length > 0 ? (
               classes.filter(c => c.status === 'SCHEDULED').slice(0, 6).map((session) => (
                 <div key={session.id} className="flex items-center gap-3 p-3.5 rounded-2xl border border-slate-50 bg-slate-50/50 hover:bg-slate-100 transition-all cursor-default">
@@ -158,20 +173,23 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, classes, students, payment
         </div>
       </div>
 
-      {/* New Section: Contas a Receber (Próximos 30 dias) */}
+      {/* Seção Corrigida: Contas a Receber */}
       <div className="bg-white p-6 md:p-8 rounded-[2rem] shadow-sm border border-slate-100">
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-lg font-black text-slate-900 flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
+          <div className="flex items-center gap-3">
             <div className="w-1.5 h-6 bg-emerald-500 rounded-full"></div>
-            Contas a Receber <span className="text-xs font-medium text-slate-400 ml-2">(Próximos 30 dias)</span>
-          </h3>
-          <button className="text-[10px] font-black text-indigo-600 uppercase tracking-widest hover:underline flex items-center gap-1">
-            Ver Financeiro <ChevronRight size={14} />
+            <div>
+              <h3 className="text-lg font-black text-slate-900">Contas a Receber</h3>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Previsão dos próximos 30 dias (a partir do dia 1º)</p>
+            </div>
+          </div>
+          <button className="text-[10px] font-black text-indigo-600 uppercase tracking-widest hover:underline flex items-center gap-1 group">
+            Ver Fluxo Financeiro <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
           </button>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left">
+          <table className="w-full text-left min-w-[600px]">
             <thead>
               <tr className="text-slate-400 text-[10px] font-black uppercase tracking-widest border-b border-slate-50">
                 <th className="pb-4 px-4">Aluno</th>
@@ -182,44 +200,52 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, classes, students, payment
             </thead>
             <tbody className="divide-y divide-slate-50">
               {receivables.length > 0 ? (
-                receivables.map((p) => (
-                  <tr key={p.id} className="group hover:bg-slate-50/50 transition-all">
-                    <td className="py-4 px-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-indigo-50 text-indigo-600 rounded-lg flex items-center justify-center text-[10px] font-black">
-                          {getStudentName(p.studentId).charAt(0)}
+                receivables.map((p) => {
+                  const isOverdue = new Date(p.dueDate + 'T23:59:59') < new Date();
+                  return (
+                    <tr key={p.id} className="group hover:bg-slate-50/50 transition-all">
+                      <td className="py-4 px-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center text-[11px] font-black shadow-inner">
+                            {getStudentName(p.studentId).charAt(0)}
+                          </div>
+                          <div>
+                            <p className="text-sm font-bold text-slate-700">{getStudentName(p.studentId)}</p>
+                            <p className="text-[9px] text-slate-400 font-medium">{p.description}</p>
+                          </div>
                         </div>
-                        <p className="text-sm font-bold text-slate-700">{getStudentName(p.studentId)}</p>
-                      </div>
-                    </td>
-                    <td className="py-4 px-4">
-                      <p className="text-xs font-bold text-slate-500 flex items-center gap-2">
-                        <Calendar size={14} className="text-slate-300" />
-                        {new Date(p.dueDate + 'T12:00:00').toLocaleDateString('pt-BR')}
-                      </p>
-                    </td>
-                    <td className="py-4 px-4 text-right">
-                      <p className="text-sm font-black text-slate-900">{formatCurrency(p.amount)}</p>
-                    </td>
-                    <td className="py-4 px-4">
-                      <div className="flex justify-center">
-                        <span className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase border ${
-                          p.status === 'OVERDUE' 
-                          ? 'bg-rose-50 text-rose-600 border-rose-100' 
-                          : 'bg-amber-50 text-amber-600 border-amber-100'
-                        }`}>
-                          {p.status === 'OVERDUE' ? 'Atrasado' : 'Pendente'}
-                        </span>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                      </td>
+                      <td className="py-4 px-4">
+                        <div className="flex items-center gap-2 text-xs font-bold text-slate-500">
+                          <Calendar size={14} className="text-slate-300" />
+                          {new Date(p.dueDate + 'T12:00:00').toLocaleDateString('pt-BR')}
+                        </div>
+                      </td>
+                      <td className="py-4 px-4 text-right">
+                        <p className="text-sm font-black text-slate-900">{formatCurrency(p.amount)}</p>
+                      </td>
+                      <td className="py-4 px-4">
+                        <div className="flex justify-center">
+                          <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase border ${
+                            p.status === 'OVERDUE' || isOverdue
+                            ? 'bg-rose-50 text-rose-600 border-rose-100' 
+                            : 'bg-amber-50 text-amber-600 border-amber-100'
+                          }`}>
+                            {p.status === 'OVERDUE' || isOverdue ? 'Atrasado' : 'Pendente'}
+                          </span>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               ) : (
                 <tr>
-                  <td colSpan={4} className="py-12 text-center opacity-30">
-                    <div className="flex flex-col items-center">
-                      <HandCoins size={32} />
-                      <p className="text-xs font-bold uppercase mt-2">Nenhum recebimento previsto para este período</p>
+                  <td colSpan={4} className="py-16 text-center">
+                    <div className="flex flex-col items-center justify-center opacity-30">
+                      <div className="p-4 bg-slate-100 rounded-full mb-3">
+                        <HandCoins size={40} className="text-slate-400" />
+                      </div>
+                      <p className="text-xs font-black uppercase tracking-widest text-slate-500">Nenhuma cobrança prevista para este período</p>
                     </div>
                   </td>
                 </tr>
@@ -227,6 +253,15 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, classes, students, payment
             </tbody>
           </table>
         </div>
+        
+        {receivables.length > 0 && (
+          <div className="mt-6 pt-6 border-t border-slate-50 flex justify-end">
+            <div className="text-right">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Subtotal do Período</p>
+              <p className="text-lg font-black text-indigo-600">{formatCurrency(totalReceivablePeriod)}</p>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
