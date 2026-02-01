@@ -169,18 +169,18 @@ const TurmaManagement: React.FC<TurmaManagementProps> = ({ students, teachers })
                 
                 <div className="mt-6 flex items-center gap-3">
                    <div className="flex -space-x-3 overflow-hidden">
-                      {turma.studentIds.slice(0, 4).map((sid, i) => (
+                      {turma.studentIds?.slice(0, 4).map((sid, i) => (
                         <div key={sid} className="inline-block h-8 w-8 rounded-full ring-2 ring-white bg-slate-100 flex items-center justify-center text-[10px] font-black text-slate-500">
                           {students.find(s => s.id === sid)?.name.charAt(0)}
                         </div>
                       ))}
-                      {turma.studentIds.length > 4 && (
+                      {(turma.studentIds?.length || 0) > 4 && (
                         <div className="flex items-center justify-center h-8 w-8 rounded-full ring-2 ring-white bg-indigo-600 text-white text-[9px] font-black">
-                          +{turma.studentIds.length - 4}
+                          +{(turma.studentIds?.length || 0) - 4}
                         </div>
                       )}
                    </div>
-                   <span className="text-[11px] font-black text-slate-400 uppercase tracking-tight">{turma.studentIds.length} Alunos</span>
+                   <span className="text-[11px] font-black text-slate-400 uppercase tracking-tight">{(turma.studentIds?.length || 0)} Alunos</span>
                 </div>
               </div>
               
@@ -314,7 +314,7 @@ const TurmaManagement: React.FC<TurmaManagementProps> = ({ students, teachers })
               <div className="space-y-3">
                 <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Lista de Chamada</p>
                 <div className="space-y-2 max-h-80 overflow-y-auto pr-2 custom-scrollbar">
-                  {selectedTurma.studentIds.map(sid => {
+                  {selectedTurma.studentIds?.map(sid => {
                     const student = students.find(s => s.id === sid);
                     if (!student) return null;
                     const isPresent = presents.includes(sid);

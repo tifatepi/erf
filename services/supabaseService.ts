@@ -2,9 +2,6 @@
 import { supabase } from '../lib/supabase';
 import { Student, Payment, ClassSession, User, UserRole, Institution, Teacher, Turma, AttendanceRecord } from '../types';
 
-// Utilitário para simular delay de rede e persistência local para testes
-const mockDelay = () => new Promise(resolve => setTimeout(resolve, 300));
-
 const getLocal = <T>(key: string, fallback: T): T => {
   const data = localStorage.getItem(`eduboost_${key}`);
   return data ? JSON.parse(data) : fallback;
@@ -26,7 +23,6 @@ export const db = {
           .maybeSingle();
         
         if (error || !data) {
-          // Fallback para login admin de teste se falhar rede ou registro não existir
           if (email === 'admin@eduboost.com.br' && password === 'qwe123') {
             return { id: 'mock-admin', name: 'Administrador (Offline)', email, role: UserRole.ADMIN };
           }
@@ -66,7 +62,8 @@ export const db = {
           name: profile.name, email: profile.email, role: profile.role, password: profile.password, avatar_url: profile.avatar
         }]).select();
         if (error) throw error;
-        return data[0] as User;
+        const p = data[0];
+        return { id: p.id, name: p.name, email: p.email, role: p.role as UserRole, avatar: p.avatar_url };
       } catch (e) {
         const users = getLocal<User[]>('profiles', []);
         const newUser = { id: Math.random().toString(), ...profile };
@@ -91,9 +88,7 @@ export const db = {
           id: String(i.id), name: i.name, cnpj: i.cnpj, contactName: i.contact_name, contactPhone: i.contact_phone
         })) as Institution[];
       } catch (e) {
-        return getLocal<Institution[]>('institutions', [
-          { id: '1', name: 'Colégio Objetivo', cnpj: '00.000.000/0001-01', contactName: 'Diretoria', contactPhone: '(11) 99999-0001' }
-        ]);
+        return getLocal<Institution[]>('institutions', []);
       }
     },
     async create(inst: Partial<Institution>) {
@@ -102,7 +97,8 @@ export const db = {
           name: inst.name, cnpj: inst.cnpj, contact_name: inst.contactName, contact_phone: inst.contactPhone
         }]).select();
         if (error) throw error;
-        return data[0];
+        const i = data[0];
+        return { id: String(i.id), name: i.name, cnpj: i.cnpj, contactName: i.contact_name, contactPhone: i.contact_phone };
       } catch (e) {
         const items = getLocal<Institution[]>('institutions', []);
         const newItem = { id: Math.random().toString(), ...inst } as Institution;
@@ -116,7 +112,8 @@ export const db = {
           name: inst.name, cnpj: inst.cnpj, contact_name: inst.contactName, contact_phone: inst.contactPhone
         }).eq('id', id).select();
         if (error) throw error;
-        return data[0];
+        const i = data[0];
+        return { id: String(i.id), name: i.name, cnpj: i.cnpj, contactName: i.contact_name, contactPhone: i.contact_phone };
       } catch (e) {
         const items = getLocal<Institution[]>('institutions', []);
         const updated = items.map(i => i.id === id ? { ...i, ...inst } : i);
@@ -141,9 +138,7 @@ export const db = {
           id: String(t.id), name: t.name, cpf: t.cpf, education: t.education, phone: t.phone
         })) as Teacher[];
       } catch (e) {
-        return getLocal<Teacher[]>('teachers', [
-          { id: '1', name: 'Prof. Carlos Alberto', cpf: '123.456.789-00', education: 'Matemática', phone: '(11) 98888-7777' }
-        ]);
+        return getLocal<Teacher[]>('teachers', []);
       }
     },
     async create(teacher: Partial<Teacher>) {
@@ -188,21 +183,20 @@ export const db = {
         const { data, error } = await supabase.from('students').select('*').order('name');
         if (error) throw error;
         return (data || []).map(s => ({
-          id: String(s.id), name: s.name, birthDate: s.birth_date, grade: s.grade, school: s.school, subjects: s.subjects || [], monthlyFee: Number(s.monthly_fee || 0)
+          id: String(s.id), name: s.name, birthDate: s.birth_date, grade: s.grade, school: s.school, guardianId: s.guardian_id, subjects: s.subjects || [], monthlyFee: Number(s.monthly_fee || 0)
         })) as Student[];
       } catch (e) {
-        return getLocal<Student[]>('students', [
-          { id: '1', name: 'Lucas Gabriel', birthDate: '2010-05-15', grade: '7º Ano (Fund II)', school: 'Colégio Objetivo', subjects: ['Matemática'], monthlyFee: 350, guardianId: 'g1' }
-        ]);
+        return getLocal<Student[]>('students', []);
       }
     },
     async create(student: Partial<Student>) {
       try {
         const { data, error } = await supabase.from('students').insert([{
-          name: student.name, birth_date: student.birthDate, grade: student.grade, school: student.school, subjects: student.subjects, monthly_fee: student.monthlyFee || 0
+          name: student.name, birth_date: student.birthDate, grade: student.grade, school: student.school, subjects: student.subjects, monthly_fee: student.monthlyFee || 0, guardian_id: student.guardianId
         }]).select();
         if (error) throw error;
-        return data[0];
+        const s = data[0];
+        return { id: String(s.id), name: s.name, birthDate: s.birth_date, grade: s.grade, school: s.school, guardianId: s.guardian_id, subjects: s.subjects || [], monthlyFee: Number(s.monthly_fee || 0) };
       } catch (e) {
         const items = getLocal<Student[]>('students', []);
         const newItem = { id: Math.random().toString(), ...student } as Student;
@@ -213,10 +207,11 @@ export const db = {
     async update(id: string, student: Partial<Student>) {
       try {
         const { data, error } = await supabase.from('students').update({
-          name: student.name, birth_date: student.birthDate, grade: student.grade, school: student.school, subjects: student.subjects, monthly_fee: student.monthlyFee
+          name: student.name, birth_date: student.birthDate, grade: student.grade, school: student.school, subjects: student.subjects, monthly_fee: student.monthlyFee, guardian_id: student.guardianId
         }).eq('id', id).select();
         if (error) throw error;
-        return data[0];
+        const s = data[0];
+        return { id: String(s.id), name: s.name, birthDate: s.birth_date, grade: s.grade, school: s.school, guardianId: s.guardian_id, subjects: s.subjects || [], monthlyFee: Number(s.monthly_fee || 0) };
       } catch (e) {
         const items = getLocal<Student[]>('students', []);
         const updated = items.map(i => i.id === id ? { ...i, ...student } : i);
@@ -234,9 +229,7 @@ export const db = {
           id: String(t.id), name: t.name, subject: t.subject, teacherId: t.teacher_id, studentIds: t.student_ids || []
         })) as Turma[];
       } catch (e) {
-        return getLocal<Turma[]>('turmas', [
-          { id: '1', name: 'Turma A - Tarde', subject: 'Matemática', teacherId: '1', studentIds: ['1'] }
-        ]);
+        return getLocal<Turma[]>('turmas', []);
       }
     },
     async create(turma: Partial<Turma>) {
@@ -245,7 +238,8 @@ export const db = {
           name: turma.name, subject: turma.subject, teacher_id: turma.teacherId, student_ids: turma.studentIds
         }]).select();
         if (error) throw error;
-        return data[0];
+        const t = data[0];
+        return { id: String(t.id), name: t.name, subject: t.subject, teacherId: t.teacher_id, studentIds: t.student_ids || [] };
       } catch (e) {
         const items = getLocal<Turma[]>('turmas', []);
         const newItem = { id: Math.random().toString(), ...turma } as Turma;
@@ -259,7 +253,8 @@ export const db = {
           name: turma.name, subject: turma.subject, teacher_id: turma.teacherId, student_ids: turma.studentIds
         }).eq('id', id).select();
         if (error) throw error;
-        return data[0];
+        const t = data[0];
+        return { id: String(t.id), name: t.name, subject: t.subject, teacherId: t.teacher_id, studentIds: t.student_ids || [] };
       } catch (e) {
         const items = getLocal<Turma[]>('turmas', []);
         const updated = items.map(i => i.id === id ? { ...i, ...turma } : i);
@@ -303,7 +298,8 @@ export const db = {
           turma_id: record.turmaId, date: record.date, present_student_ids: record.presentStudentIds
         }], { onConflict: 'turma_id,date' }).select();
         if (error) throw error;
-        return data[0];
+        const a = data[0];
+        return { id: a.id, turmaId: a.turma_id, date: a.date, presentStudentIds: a.present_student_ids || [] };
       } catch (e) {
         const items = getLocal<AttendanceRecord[]>('attendance', []);
         const index = items.findIndex(i => i.turmaId === record.turmaId && i.date === record.date);
@@ -324,9 +320,7 @@ export const db = {
           id: String(p.id), studentId: String(p.student_id), amount: Number(p.amount), dueDate: p.due_date, paymentDate: p.payment_date, status: p.status, description: p.description
         })) as Payment[];
       } catch (e) {
-        return getLocal<Payment[]>('payments', [
-          { id: '1', studentId: '1', amount: 350, dueDate: '2024-02-10', status: 'PENDING', description: 'Mensalidade Fevereiro' }
-        ]);
+        return getLocal<Payment[]>('payments', []);
       }
     },
     async create(payment: Partial<Payment>) {
@@ -335,7 +329,8 @@ export const db = {
           student_id: payment.studentId, amount: payment.amount, due_date: payment.dueDate, status: payment.status, description: payment.description
         }]).select();
         if (error) throw error;
-        return data[0];
+        const p = data[0];
+        return { id: String(p.id), studentId: String(p.student_id), amount: Number(p.amount), dueDate: p.due_date, paymentDate: p.payment_date, status: p.status, description: p.description };
       } catch (e) {
         const items = getLocal<Payment[]>('payments', []);
         const newItem = { id: Math.random().toString(), ...payment } as Payment;
@@ -349,7 +344,8 @@ export const db = {
           status: updates.status, payment_date: updates.paymentDate
         }).eq('id', id).select();
         if (error) throw error;
-        return data[0];
+        const p = data[0];
+        return { id: String(p.id), studentId: String(p.student_id), amount: Number(p.amount), dueDate: p.due_date, paymentDate: p.payment_date, status: p.status, description: p.description };
       } catch (e) {
         const items = getLocal<Payment[]>('payments', []);
         const updated = items.map(i => i.id === id ? { ...i, ...updates } : i);
@@ -376,7 +372,8 @@ export const db = {
           subject: session.subject, teacher_id: session.teacherId, student_id: session.studentId, date: session.date, time: session.time, status: session.status, notes: session.notes
         }]).select();
         if (error) throw error;
-        return data[0];
+        const c = data[0];
+        return { id: String(c.id), subject: c.subject, teacherId: c.teacher_id, studentId: String(c.student_id), date: c.date, time: c.time, status: c.status, notes: c.notes };
       } catch (e) {
         const items = getLocal<ClassSession[]>('classes', []);
         const newItem = { id: Math.random().toString(), ...session } as ClassSession;
@@ -390,7 +387,8 @@ export const db = {
           notes: session.notes, status: session.status
         }).eq('id', id).select();
         if (error) throw error;
-        return data[0];
+        const c = data[0];
+        return { id: String(c.id), subject: c.subject, teacherId: c.teacher_id, studentId: String(c.student_id), date: c.date, time: c.time, status: c.status, notes: c.notes };
       } catch (e) {
         const items = getLocal<ClassSession[]>('classes', []);
         const updated = items.map(i => i.id === id ? { ...i, ...session } : i);

@@ -36,7 +36,7 @@ export interface Student {
   birthDate: string; // ISO Date String
   grade: string;
   school: string;
-  guardianId: string;
+  guardianId?: string;
   subjects: string[];
   monthlyFee?: number;
 }
