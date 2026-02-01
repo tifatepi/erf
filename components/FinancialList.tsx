@@ -16,7 +16,8 @@ import {
   GraduationCap,
   ShieldCheck,
   QrCode,
-  Printer,
+  PlusCircle,
+  Calendar,
   ChevronRight
 } from 'lucide-react';
 
@@ -172,21 +173,21 @@ const FinancialList: React.FC<FinancialListProps> = ({ payments, students, onAdd
         </div>
         <button 
           onClick={() => setIsModalOpen(true)}
-          className="bg-indigo-600 text-white px-6 py-3.5 rounded-2xl text-sm font-bold hover:bg-indigo-700 shadow-xl shadow-indigo-100 flex items-center gap-2 transition-all active:scale-95"
+          className="bg-indigo-600 text-white px-6 py-4 rounded-2xl text-sm font-black hover:bg-indigo-700 shadow-xl shadow-indigo-100 flex items-center gap-3 transition-all active:scale-95 group"
         >
-          <DollarSign size={18} />
-          Registrar Pagamento
+          <PlusCircle size={20} className="group-hover:rotate-90 transition-transform duration-300" />
+          Registrar Cobrança
         </button>
       </div>
 
       <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden">
-        <div className="p-4 md:p-6 border-b border-slate-50">
+        <div className="p-4 md:p-6 border-b border-slate-50 bg-slate-50/30">
           <div className="relative max-w-md w-full">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
             <input 
               type="text" 
               placeholder="Buscar aluno ou referência..." 
-              className="w-full pl-12 pr-6 py-3.5 bg-slate-50 border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+              className="w-full pl-12 pr-6 py-3.5 bg-white border border-slate-200 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -266,17 +267,20 @@ const FinancialList: React.FC<FinancialListProps> = ({ payments, students, onAdd
         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-900/40 backdrop-blur-md p-4 animate-fade-in">
           <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-lg border border-white/20 overflow-hidden">
             <div className="p-8 border-b border-slate-50 flex items-center justify-between bg-indigo-600 text-white">
-              <h3 className="font-black text-2xl tracking-tight">Novo Lançamento</h3>
+              <div>
+                <h3 className="font-black text-2xl tracking-tight">Registrar Cobrança</h3>
+                <p className="text-indigo-100 text-[10px] font-bold uppercase tracking-widest mt-1">Lançamento de mensalidade manual</p>
+              </div>
               <button onClick={() => setIsModalOpen(false)} className="hover:bg-white/10 p-2 rounded-2xl transition-all">
                 <X size={24} />
               </button>
             </div>
             
-            <form onSubmit={handleSave} className="p-8 space-y-5">
-              <div className="space-y-1">
+            <form onSubmit={handleSave} className="p-8 space-y-6">
+              <div className="space-y-1.5">
                 <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Aluno Beneficiário</label>
                 <select 
-                  className="w-full px-5 py-4 bg-slate-50 border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                  className="w-full px-5 py-4 bg-slate-50 border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none transition-all appearance-none cursor-pointer"
                   value={newPay.studentId}
                   onChange={e => {
                     const student = students.find(s => String(s.id) === e.target.value);
@@ -288,27 +292,61 @@ const FinancialList: React.FC<FinancialListProps> = ({ payments, students, onAdd
                   {students.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                 </select>
               </div>
+
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Referência</label>
-                  <select className="w-full px-5 py-4 bg-slate-50 border-none rounded-2xl text-sm font-bold" value={newPay.description} onChange={e => setNewPay({...newPay, description: e.target.value})}>
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Mês de Referência</label>
+                  <select 
+                    className="w-full px-5 py-4 bg-slate-50 border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none transition-all appearance-none cursor-pointer" 
+                    value={newPay.description.replace('Mensalidade ', '')} 
+                    onChange={e => setNewPay({...newPay, description: e.target.value})}
+                  >
                     {months.map(m => <option key={m} value={m}>{m}</option>)}
                   </select>
                 </div>
-                <div className="space-y-1">
-                  <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Valor (R$)</label>
-                  <input type="number" step="0.01" required className="w-full px-5 py-4 bg-slate-50 border-none rounded-2xl text-sm font-black" value={newPay.amount || ''} onChange={e => setNewPay({...newPay, amount: parseFloat(e.target.value)})} />
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Valor da Parcela</label>
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-400">R$</span>
+                    <input 
+                      type="number" step="0.01" required 
+                      className="w-full pl-10 pr-5 py-4 bg-slate-50 border-none rounded-2xl text-sm font-black focus:ring-2 focus:ring-indigo-500 outline-none" 
+                      value={newPay.amount || ''} 
+                      onChange={e => setNewPay({...newPay, amount: parseFloat(e.target.value)})} 
+                    />
+                  </div>
                 </div>
               </div>
-              <div className="pt-6 flex gap-3">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 px-6 py-4 bg-slate-100 text-slate-600 rounded-2xl text-sm font-black">Cancelar</button>
-                <button type="submit" className="flex-1 px-6 py-4 bg-indigo-600 text-white rounded-2xl text-sm font-black shadow-xl shadow-indigo-100 transition-all active:scale-95">Confirmar</button>
+
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Data de Vencimento</label>
+                <div className="relative">
+                  <Calendar size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input 
+                    type="date" required 
+                    className="w-full pl-12 pr-5 py-4 bg-slate-50 border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none" 
+                    value={newPay.dueDate} 
+                    onChange={e => setNewPay({...newPay, dueDate: e.target.value})} 
+                  />
+                </div>
+              </div>
+
+              <div className="pt-6 flex gap-4">
+                <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 px-6 py-4 bg-slate-100 text-slate-600 rounded-2xl text-sm font-black hover:bg-slate-200 transition-all">Cancelar</button>
+                <button 
+                  type="submit" 
+                  disabled={isSubmitting}
+                  className="flex-1 px-6 py-4 bg-indigo-600 text-white rounded-2xl text-sm font-black shadow-xl shadow-indigo-100 transition-all active:scale-95 disabled:opacity-50"
+                >
+                  {isSubmitting ? 'Processando...' : 'Gerar Cobrança'}
+                </button>
               </div>
             </form>
           </div>
         </div>
       )}
 
+      {/* Modal de Recibo - Mantido como estava */}
       {isReceiptOpen && selectedPayment && (
         <div className="fixed inset-0 z-[130] flex items-center justify-center bg-slate-900/90 backdrop-blur-md p-4 animate-fade-in overflow-y-auto">
           <div className="bg-slate-800 rounded-[2rem] shadow-2xl w-full max-w-5xl overflow-hidden border border-white/10 my-8">
@@ -324,23 +362,13 @@ const FinancialList: React.FC<FinancialListProps> = ({ payments, students, onAdd
             </div>
 
             <div className="p-4 md:p-8 bg-slate-700 flex justify-center items-center overflow-x-auto min-h-[70vh]">
-              {/* CONTENT AREA RIGOROUSLY ADJUSTED TO A4 (210x297mm) */}
               <div 
                 ref={receiptRef}
                 style={{ 
-                  width: '210mm',
-                  height: '297mm',
-                  minHeight: '297mm',
-                  maxHeight: '297mm',
-                  backgroundColor: '#ffffff',
-                  fontFamily: "'Inter', sans-serif",
-                  color: '#1e293b',
-                  padding: '20mm', // Margens de 2cm solicitadas
-                  position: 'relative',
-                  overflow: 'hidden',
-                  boxSizing: 'border-box',
-                  display: 'flex',
-                  flexDirection: 'column'
+                  width: '210mm', height: '297mm', minHeight: '297mm', maxHeight: '297mm',
+                  backgroundColor: '#ffffff', fontFamily: "'Inter', sans-serif", color: '#1e293b',
+                  padding: '20mm', position: 'relative', overflow: 'hidden', boxSizing: 'border-box',
+                  display: 'flex', flexDirection: 'column'
                 }}
                 className="pdf-canvas shadow-2xl"
               >
@@ -391,15 +419,12 @@ const FinancialList: React.FC<FinancialListProps> = ({ payments, students, onAdd
                   </div>
                 </div>
 
-                {/* Confirmation Box */}
                 <div style={{ marginTop: '12mm', fontSize: '13px', lineHeight: '1.6', color: '#475569', backgroundColor: '#f1f5f9', padding: '8mm', borderRadius: '14px', fontStyle: 'italic' }}>
                   Pelo presente, declaramos ter recebido a importância supra descrita, para a qual damos a devida e irrevogável quitação.
                 </div>
 
-                {/* Spacer to push signature down but keep within 297mm */}
                 <div style={{ flex: 1 }}></div>
 
-                {/* Signature and Footer Section */}
                 <div style={{ paddingBottom: '5mm' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '10mm' }}>
                     <div style={{ flex: 1 }}>
@@ -419,7 +444,6 @@ const FinancialList: React.FC<FinancialListProps> = ({ payments, students, onAdd
                   </div>
                 </div>
 
-                {/* Digital Stamp Overlay (Better positioned) */}
                 <div style={{ position: 'absolute', bottom: '100mm', right: '15mm', transform: 'rotate(-10deg)', border: '3px solid #10b981', padding: '8px 20px', borderRadius: '12px', color: '#10b981', display: 'flex', flexDirection: 'column', alignItems: 'center', backgroundColor: '#ffffff', opacity: 0.7 }}>
                   <ShieldCheck size={24} />
                   <p style={{ fontSize: '16px', fontWeight: '950', margin: '2px 0 0 0' }}>CONFIRMADO</p>
