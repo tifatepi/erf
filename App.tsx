@@ -211,7 +211,7 @@ const App: React.FC = () => {
 
     switch (activeTab) {
       case 'dashboard':
-        return <Dashboard stats={stats} classes={classes} students={students} />;
+        return <Dashboard stats={stats} classes={classes} students={students} payments={payments} />;
       case 'teacher-area':
         return <TeacherArea classes={classes} students={students} onUpdateClass={updateClassSession} />;
       case 'institutions':
@@ -235,7 +235,7 @@ const App: React.FC = () => {
       case 'users':
         return <UserManagement />;
       default:
-        return <Dashboard stats={stats} classes={classes} students={students} />;
+        return <Dashboard stats={stats} classes={classes} students={students} payments={payments} />;
     }
   };
 
