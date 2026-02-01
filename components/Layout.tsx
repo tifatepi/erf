@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
-import { NAVIGATION_ITEMS, APP_NAME } from '../constants';
+import { NAVIGATION_ITEMS, APP_NAME, NavItem } from '../constants';
 import { User } from '../types';
-import { Menu, X, LogOut, Bell, ChevronRight, GraduationCap } from 'lucide-react';
+import { Menu, X, LogOut, Bell, ChevronRight, GraduationCap, ChevronDown } from 'lucide-react';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -15,6 +15,7 @@ interface LayoutProps {
 const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, user, onLogout }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [expandedMenus, setExpandedMenus] = useState<string[]>(['academic-group']); // Começa com acadêmico aberto por padrão
 
   useEffect(() => {
     const handleResize = () => {
@@ -29,16 +30,30 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, user
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  const toggleMenu = (id: string) => {
+    setExpandedMenus(prev => 
+      prev.includes(id) ? prev.filter(m => m !== id) : [...prev, id]
+    );
+  };
+
+  const handleTabClick = (item: NavItem) => {
+    if (item.children) {
+      toggleMenu(item.id);
+    } else {
+      setActiveTab(item.id);
+      if (isMobile) setIsSidebarOpen(false);
+    }
+  };
+
   const filteredNav = NAVIGATION_ITEMS.filter(item => item.roles.includes(user.role));
 
-  const handleTabClick = (id: string) => {
-    setActiveTab(id);
-    if (isMobile) setIsSidebarOpen(false);
+  const isChildActive = (item: NavItem) => {
+    return item.children?.some(child => child.id === activeTab);
   };
 
   return (
-    <div className="flex h-screen bg-slate-50 overflow-hidden font-sans">
-      {/* Sidebar Backdrop (Apenas Mobile) - Z-INDEX 90 */}
+    <div className="flex h-screen bg-slate-50 overflow-hidden font-sans text-slate-900">
+      {/* Sidebar Backdrop (Apenas Mobile) */}
       {isMobile && isSidebarOpen && (
         <div 
           className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[90] transition-opacity duration-300 animate-in fade-in"
@@ -46,16 +61,16 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, user
         />
       )}
 
-      {/* Sidebar - Z-INDEX 100 */}
+      {/* Sidebar */}
       <aside 
         className={`
           ${isMobile ? 'fixed inset-y-0 left-0 z-[100] shadow-2xl' : 'relative'}
-          ${isSidebarOpen ? 'w-64 translate-x-0' : 'w-0 -translate-x-full lg:w-20 lg:translate-x-0'}
+          ${isSidebarOpen ? 'w-72 translate-x-0' : 'w-0 -translate-x-full lg:w-20 lg:translate-x-0'}
           ${isMobile && !isSidebarOpen ? 'invisible' : 'visible'}
           bg-white border-r border-slate-200 transition-all duration-300 ease-in-out flex flex-col
         `}
       >
-        {/* Logo Section na Sidebar */}
+        {/* Logo Section */}
         <div className="p-6 flex items-center gap-3 overflow-hidden shrink-0 border-b border-slate-50">
           <div className="bg-indigo-600 p-2.5 rounded-xl shrink-0 shadow-lg shadow-indigo-200">
             <GraduationCap className="text-white" size={20} />
@@ -69,27 +84,67 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, user
 
         {/* Navigation */}
         <nav className="flex-1 mt-4 px-3 overflow-y-auto overflow-x-hidden space-y-1 custom-scrollbar">
-          {filteredNav.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => handleTabClick(item.id)}
-              className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all group ${
-                activeTab === item.id 
-                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100' 
-                  : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'
-              }`}
-            >
-              <div className="shrink-0">{item.icon}</div>
-              {(isSidebarOpen || isMobile) && (
-                <span className="font-bold text-sm whitespace-nowrap">
-                  {item.label}
-                </span>
-              )}
-            </button>
-          ))}
+          {filteredNav.map((item) => {
+            const hasChildren = !!item.children;
+            const isExpanded = expandedMenus.includes(item.id);
+            const isActive = activeTab === item.id || isChildActive(item);
+
+            return (
+              <div key={item.id} className="space-y-1">
+                <button
+                  onClick={() => handleTabClick(item)}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all group relative ${
+                    isActive && !hasChildren
+                      ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100' 
+                      : isActive && hasChildren
+                      ? 'bg-slate-50 text-indigo-600'
+                      : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'
+                  }`}
+                >
+                  <div className="shrink-0">{item.icon}</div>
+                  {(isSidebarOpen || isMobile) && (
+                    <span className="font-bold text-sm whitespace-nowrap flex-1 text-left">
+                      {item.label}
+                    </span>
+                  )}
+                  {(isSidebarOpen || isMobile) && hasChildren && (
+                    <ChevronDown 
+                      size={16} 
+                      className={`transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} 
+                    />
+                  )}
+                </button>
+
+                {/* Submenu Rendering */}
+                {hasChildren && isExpanded && (isSidebarOpen || isMobile) && (
+                  <div className="ml-6 pl-4 border-l-2 border-slate-100 space-y-1 animate-in slide-in-from-top-2 duration-300">
+                    {item.children?.filter(c => c.roles.includes(user.role)).map((child) => (
+                      <button
+                        key={child.id}
+                        onClick={() => {
+                          setActiveTab(child.id);
+                          if (isMobile) setIsSidebarOpen(false);
+                        }}
+                        className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all group ${
+                          activeTab === child.id 
+                            ? 'bg-indigo-50 text-indigo-700 font-bold' 
+                            : 'text-slate-400 hover:text-slate-700 hover:bg-slate-50'
+                        }`}
+                      >
+                        <div className="shrink-0">{child.icon}</div>
+                        <span className="text-xs font-bold whitespace-nowrap">
+                          {child.label}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </nav>
 
-        {/* User Profile Section */}
+        {/* User Profile */}
         <div className="p-4 border-t border-slate-100 bg-slate-50/50">
           <div className={`flex items-center gap-3 ${(isSidebarOpen || isMobile) ? 'justify-start' : 'justify-center'}`}>
             <img 
@@ -108,28 +163,21 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, user
       </aside>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 h-full">
-        {/* Top Header - Z-INDEX 50 e Sticky */}
-        <header className="sticky top-0 h-16 bg-white/80 backdrop-blur-md border-b border-slate-200 flex items-center justify-between px-4 md:px-6 shrink-0 z-50">
+      <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
+        {/* Top Header */}
+        <header className="h-16 bg-white/80 backdrop-blur-md border-b border-slate-200 flex items-center justify-between px-4 md:px-6 shrink-0 z-50">
           <div className="flex items-center gap-3">
-            {/* BOTÃO DE MENU MOBILE REFORÇADO */}
             <button 
               onClick={() => setIsSidebarOpen(true)} 
               className="p-2.5 bg-slate-50 hover:bg-slate-100 rounded-xl text-slate-600 transition-all lg:hidden active:scale-90 border border-slate-200"
-              aria-label="Abrir Menu"
             >
               <Menu size={22} />
             </button>
             
-            <div className="flex items-center gap-2">
-              <div className="bg-indigo-600 p-1.5 rounded-lg lg:hidden">
-                <GraduationCap className="text-white" size={16} />
-              </div>
-              <div className="hidden sm:flex items-center gap-2 text-[11px] text-slate-400 font-bold uppercase tracking-widest">
-                <span className="hover:text-indigo-600 cursor-pointer">Painel</span>
-                <ChevronRight size={12} />
-                <span className="text-slate-900 font-black">{activeTab}</span>
-              </div>
+            <div className="hidden sm:flex items-center gap-2 text-[10px] text-slate-400 font-bold uppercase tracking-widest">
+              <span>Painel</span>
+              <ChevronRight size={12} />
+              <span className="text-slate-900 font-black">{activeTab}</span>
             </div>
           </div>
 
@@ -138,9 +186,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, user
               <Bell size={20} />
               <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 border-2 border-white rounded-full"></span>
             </button>
-            
             <div className="w-px h-6 bg-slate-200 hidden xs:block"></div>
-            
             <button 
               onClick={onLogout}
               className="flex items-center gap-2 px-3 py-2 text-xs font-black text-rose-600 hover:bg-rose-50 rounded-xl transition-all"
@@ -152,7 +198,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, user
         </header>
 
         {/* Scrollable Main Area */}
-        <main className="flex-1 overflow-y-auto bg-slate-50/50 p-4 md:p-8">
+        <main className="flex-1 overflow-y-auto bg-slate-50/50 p-4 md:p-8 custom-scrollbar">
           <div className="max-w-7xl mx-auto pb-10">
             {children}
           </div>
