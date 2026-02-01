@@ -1,6 +1,6 @@
 
-import React, { useState } from 'react';
-import { Search, Plus, MessageSquareCode, X, Edit, Save, DollarSign, Building2, ChevronDown } from 'lucide-react';
+import React, { useState, KeyboardEvent } from 'react';
+import { Search, Plus, MessageSquareCode, X, Edit, Save, DollarSign, Building2, ChevronDown, BookOpen, Tag } from 'lucide-react';
 import { getAcademicInsights } from '../services/geminiService';
 import { Student, Institution } from '../types';
 
@@ -18,6 +18,7 @@ const StudentList: React.FC<StudentListProps> = ({ students, institutions, onAdd
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
+  const [currentSubjectInput, setCurrentSubjectInput] = useState('');
   
   const [formData, setFormData] = useState({
     name: '',
@@ -74,6 +75,31 @@ const StudentList: React.FC<StudentListProps> = ({ students, institutions, onAdd
       subjects: student.subjects || []
     });
     setIsModalOpen(true);
+  };
+
+  const handleAddSubject = () => {
+    const trimmed = currentSubjectInput.trim();
+    if (trimmed && !formData.subjects.includes(trimmed)) {
+      setFormData(prev => ({
+        ...prev,
+        subjects: [...prev.subjects, trimmed]
+      }));
+      setCurrentSubjectInput('');
+    }
+  };
+
+  const handleRemoveSubject = (subjectToRemove: string) => {
+    setFormData(prev => ({
+      ...prev,
+      subjects: prev.subjects.filter(s => s !== subjectToRemove)
+    }));
+  };
+
+  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleAddSubject();
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -139,7 +165,7 @@ const StudentList: React.FC<StudentListProps> = ({ students, institutions, onAdd
           </div>
         </div>
 
-        <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent">
+        <div className="overflow-x-auto">
           <table className="w-full text-left min-w-[800px]">
             <thead>
               <tr className="bg-slate-50/50 text-slate-400 text-[10px] font-black uppercase tracking-[0.2em]">
@@ -179,6 +205,7 @@ const StudentList: React.FC<StudentListProps> = ({ students, institutions, onAdd
                             {sub}
                           </span>
                         ))}
+                        {(student.subjects?.length || 0) === 0 && <span className="text-[10px] text-slate-300 font-bold italic">Nenhuma</span>}
                       </div>
                     </td>
                     <td className="px-6 md:px-8 py-5">
@@ -275,22 +302,58 @@ const StudentList: React.FC<StudentListProps> = ({ students, institutions, onAdd
                         <option value="1ª Série (Médio)">1ª Série</option>
                         <option value="2ª Série (Médio)">2ª Série</option>
                         <option value="3ª Série (Médio)">3ª Série</option>
-                        <option value="Pré-vestibular">Pré-vestibular / Terceirão</option>
-                      </optgroup>
-                      <optgroup label="Ensino Superior">
-                        <option value="Ensino Superior (Graduação)">Graduação</option>
-                        <option value="Pós-graduação / MBA">Pós-graduação / MBA</option>
-                        <option value="Mestrado / Doutorado">Mestrado / Doutorado</option>
-                      </optgroup>
-                      <optgroup label="Outros">
-                        <option value="EJA">EJA (Jovens e Adultos)</option>
-                        <option value="Curso Preparatório">Curso Preparatório</option>
-                        <option value="Concurso Público">Concurso Público</option>
-                        <option value="Línguas / Outros">Línguas / Outros</option>
+                        <option value="Pré-vestibular">Pré-vestibular</option>
                       </optgroup>
                     </select>
                     <ChevronDown size={18} className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                   </div>
+                </div>
+              </div>
+
+              {/* Seção de Múltiplas Disciplinas */}
+              <div className="space-y-3">
+                <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
+                  <BookOpen size={14} className="text-indigo-500" />
+                  Disciplinas de Reforço
+                </label>
+                
+                <div className="flex gap-2">
+                  <input 
+                    type="text"
+                    placeholder="Ex: Física, Redação..."
+                    className="flex-1 px-5 py-3.5 bg-slate-50 border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                    value={currentSubjectInput}
+                    onChange={e => setCurrentSubjectInput(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                  />
+                  <button 
+                    type="button"
+                    onClick={handleAddSubject}
+                    className="p-3.5 bg-indigo-50 text-indigo-600 rounded-2xl hover:bg-indigo-100 transition-all active:scale-95"
+                  >
+                    <Plus size={20} />
+                  </button>
+                </div>
+
+                <div className="flex flex-wrap gap-2 p-4 bg-slate-50 rounded-2xl border border-slate-100 min-h-[60px]">
+                  {formData.subjects.map((sub, index) => (
+                    <div 
+                      key={index}
+                      className="flex items-center gap-2 px-3 py-1.5 bg-white border border-indigo-100 text-indigo-600 rounded-xl shadow-sm animate-in zoom-in duration-200"
+                    >
+                      <span className="text-xs font-black uppercase">{sub}</span>
+                      <button 
+                        type="button" 
+                        onClick={() => handleRemoveSubject(sub)}
+                        className="p-0.5 hover:bg-rose-50 hover:text-rose-500 rounded-md transition-colors"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ))}
+                  {formData.subjects.length === 0 && (
+                    <p className="text-xs text-slate-400 font-medium italic self-center">Nenhuma disciplina adicionada.</p>
+                  )}
                 </div>
               </div>
 
@@ -305,11 +368,11 @@ const StudentList: React.FC<StudentListProps> = ({ students, institutions, onAdd
                       value={formData.school}
                       onChange={e => setFormData({...formData, school: e.target.value})}
                     >
-                      <option value="">Selecione uma escola...</option>
+                      <option value="">Selecione...</option>
                       {institutions.map(inst => (
                         <option key={inst.id} value={inst.name}>{inst.name}</option>
                       ))}
-                      <option value="Outra">Outra (Não listada)</option>
+                      <option value="Outra">Outra</option>
                     </select>
                   </div>
                 </div>
