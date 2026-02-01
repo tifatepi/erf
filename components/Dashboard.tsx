@@ -69,16 +69,10 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, classes, students, payment
 
   const receivables = React.useMemo(() => {
     if (!payments) return [];
-    const now = timeService.now();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0);
-    const limitDate = new Date(startOfMonth.getTime() + (30 * 24 * 60 * 60 * 1000));
-
+    
+    // Removida a regra de 30 dias: agora exibe todos os pendentes/atrasados
     return payments
-      .filter(p => {
-        if (!p.dueDate) return false;
-        const dueDate = new Date(p.dueDate + 'T12:00:00');
-        return p.status !== 'PAID' && (dueDate >= startOfMonth && dueDate <= limitDate || p.status === 'OVERDUE');
-      })
+      .filter(p => p.status !== 'PAID')
       .sort((a, b) => a.dueDate.localeCompare(b.dueDate))
       .slice(0, 6);
   }, [payments]);
@@ -255,14 +249,14 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, classes, students, payment
             <div className="w-1.5 h-6 bg-emerald-500 rounded-full"></div>
             <div>
               <h3 className="text-lg font-black text-slate-900">Fluxo de Recebimentos</h3>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Próximos 30 dias e atrasados</p>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Compromissos Pendentes e Atrasados</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
             <div className="bg-emerald-50 border border-emerald-100 px-4 py-2 rounded-2xl flex items-center gap-3 transition-all hover:bg-emerald-100">
               <Wallet className="text-emerald-500" size={18} />
               <div>
-                <p className="text-[9px] font-black text-emerald-400 uppercase tracking-widest leading-tight">Total Previsto</p>
+                <p className="text-[9px] font-black text-emerald-400 uppercase tracking-widest leading-tight">Total Pendente</p>
                 <p className="text-sm font-black text-emerald-700 leading-none">{formatCurrency(totalReceivablePeriod)}</p>
               </div>
             </div>
@@ -322,7 +316,7 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, classes, students, payment
               {receivables.length === 0 && (
                 <tr>
                   <td colSpan={6} className="py-16 text-center opacity-40">
-                    <p className="text-[11px] font-black uppercase tracking-widest text-slate-500">Nenhuma conta a receber para o período</p>
+                    <p className="text-[11px] font-black uppercase tracking-widest text-slate-500">Nenhuma conta a receber pendente</p>
                   </td>
                 </tr>
               )}
