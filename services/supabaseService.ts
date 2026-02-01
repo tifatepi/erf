@@ -1,4 +1,3 @@
-
 import { supabase } from '../lib/supabase';
 import { Student, Payment, ClassSession, User, UserRole, Institution, Teacher, Turma, AttendanceRecord } from '../types';
 
@@ -151,6 +150,7 @@ export const db = {
       } catch (e) {
         const items = getLocal<Teacher[]>('teachers', []);
         const newItem = { id: Math.random().toString(), ...teacher } as Teacher;
+        // Fix: Use 'newItem' instead of 'newUser' which was not defined in this scope.
         setLocal('teachers', [...items, newItem]);
         return newItem;
       }

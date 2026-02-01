@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from 'react';
 import { Turma, Student, Teacher, AttendanceRecord } from '../types';
 import { db } from '../services/supabaseService';
-// Fix: Add missing 'Shapes' import from lucide-react
 import { 
   Plus, 
   Users, 
@@ -16,7 +15,8 @@ import {
   GraduationCap,
   Loader2,
   ChevronRight,
-  Shapes
+  Shapes,
+  AlertCircle
 } from 'lucide-react';
 
 interface TurmaManagementProps {
@@ -65,6 +65,7 @@ const TurmaManagement: React.FC<TurmaManagementProps> = ({ students, teachers })
       setTurmas(prev => [...prev, created]);
       setIsModalOpen(false);
       setFormData({ name: '', subject: '', teacherId: '', studentIds: [] });
+      alert("Turma criada! O plano financeiro dos alunos foi gerado para os próximos 6 meses.");
     } catch (err) {
       alert("Erro ao criar turma.");
     } finally {
@@ -72,8 +73,24 @@ const TurmaManagement: React.FC<TurmaManagementProps> = ({ students, teachers })
     }
   };
 
+  const handleUpdateTurma = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedTurma) return;
+    setIsSaving(true);
+    try {
+      const updated = await db.turmas.update(selectedTurma.id, formData);
+      setTurmas(prev => prev.map(t => t.id === selectedTurma.id ? updated : t));
+      setIsModalOpen(false);
+      alert("Turma atualizada! Novos alunos receberam o plano financeiro de 6 meses.");
+    } catch (err) {
+      alert("Erro ao atualizar turma.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const handleDeleteTurma = async (id: string) => {
-    if (window.confirm("Deseja realmente excluir esta turma?")) {
+    if (window.confirm("Deseja realmente excluir esta turma? Isso não apagará os débitos financeiros já gerados.")) {
       try {
         await db.turmas.delete(id);
         setTurmas(prev => prev.filter(t => t.id !== id));
@@ -81,6 +98,23 @@ const TurmaManagement: React.FC<TurmaManagementProps> = ({ students, teachers })
         alert("Erro ao excluir.");
       }
     }
+  };
+
+  const openAdd = () => {
+    setSelectedTurma(null);
+    setFormData({ name: '', subject: '', teacherId: '', studentIds: [] });
+    setIsModalOpen(true);
+  };
+
+  const openEdit = (turma: Turma) => {
+    setSelectedTurma(turma);
+    setFormData({
+      name: turma.name,
+      subject: turma.subject,
+      teacherId: turma.teacherId,
+      studentIds: turma.studentIds || []
+    });
+    setIsModalOpen(true);
   };
 
   const openAttendance = async (turma: Turma) => {
@@ -129,8 +163,6 @@ const TurmaManagement: React.FC<TurmaManagementProps> = ({ students, teachers })
     }));
   };
 
-  const getTeacherName = (id: string) => teachers.find(t => t.id === id)?.name || 'Sem Docente';
-
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -139,7 +171,7 @@ const TurmaManagement: React.FC<TurmaManagementProps> = ({ students, teachers })
           <p className="text-slate-500 font-medium">Organize alunos e registre frequências.</p>
         </div>
         <button 
-          onClick={() => setIsModalOpen(true)}
+          onClick={openAdd}
           className="bg-indigo-600 text-white px-6 py-3.5 rounded-2xl text-sm font-bold hover:bg-indigo-700 shadow-xl shadow-indigo-100 flex items-center gap-2 transition-all active:scale-95"
         >
           <Plus size={18} />
@@ -160,9 +192,14 @@ const TurmaManagement: React.FC<TurmaManagementProps> = ({ students, teachers })
                   <div className="bg-indigo-50 text-indigo-600 p-3 rounded-2xl">
                     <Shapes size={20} />
                   </div>
-                  <button onClick={() => handleDeleteTurma(turma.id)} className="p-2 text-slate-300 hover:text-rose-500 rounded-lg transition-colors">
-                    <Trash2 size={16} />
-                  </button>
+                  <div className="flex gap-1">
+                    <button onClick={() => openEdit(turma)} className="p-2 text-slate-300 hover:text-indigo-600 rounded-lg transition-colors">
+                      <MoreVertical size={16} />
+                    </button>
+                    <button onClick={() => handleDeleteTurma(turma.id)} className="p-2 text-slate-300 hover:text-rose-500 rounded-lg transition-colors">
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
                 </div>
                 <h3 className="text-xl font-black text-slate-900 line-clamp-1">{turma.name}</h3>
                 <p className="text-sm font-bold text-indigo-500 mt-1 uppercase tracking-widest text-[10px]">{turma.subject}</p>
@@ -205,16 +242,23 @@ const TurmaManagement: React.FC<TurmaManagementProps> = ({ students, teachers })
         </div>
       )}
 
-      {/* Modal Criar Turma */}
+      {/* Modal Criar/Editar Turma */}
       {isModalOpen && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-900/40 backdrop-blur-md p-4 animate-fade-in">
           <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-white/20">
             <div className="p-8 border-b border-slate-50 flex items-center justify-between bg-indigo-600 text-white sticky top-0 z-10">
-              <h3 className="font-black text-2xl tracking-tight">Nova Turma</h3>
+              <h3 className="font-black text-2xl tracking-tight">{selectedTurma ? 'Editar Turma' : 'Nova Turma'}</h3>
               <button onClick={() => setIsModalOpen(false)} className="hover:bg-white/10 p-2 rounded-2xl transition-all"><X size={24} /></button>
             </div>
             
-            <form onSubmit={handleCreateTurma} className="p-8 space-y-6">
+            <form onSubmit={selectedTurma ? handleUpdateTurma : handleCreateTurma} className="p-8 space-y-6">
+              <div className="bg-amber-50 border border-amber-100 p-4 rounded-2xl flex gap-3 text-amber-700">
+                <AlertCircle className="shrink-0" size={20} />
+                <p className="text-[11px] font-bold leading-relaxed uppercase tracking-tight">
+                  Atenção: Ao adicionar novos alunos a esta turma, o sistema gerará automaticamente débitos mensais para os próximos 6 meses, com o primeiro vencimento em 30 dias.
+                </p>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-1.5">
                   <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Nome da Turma</label>
@@ -273,7 +317,7 @@ const TurmaManagement: React.FC<TurmaManagementProps> = ({ students, teachers })
               <div className="pt-6 flex gap-3">
                 <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 px-6 py-4 bg-slate-100 text-slate-600 rounded-2xl text-sm font-black">Cancelar</button>
                 <button type="submit" disabled={isSaving} className="flex-1 px-6 py-4 bg-indigo-600 text-white rounded-2xl text-sm font-black hover:bg-indigo-700 shadow-xl shadow-indigo-100 disabled:opacity-50">
-                   {isSaving ? 'Salvando...' : 'Criar Turma'}
+                   {isSaving ? 'Processando...' : selectedTurma ? 'Salvar Alterações' : 'Criar Turma'}
                 </button>
               </div>
             </form>
@@ -281,7 +325,7 @@ const TurmaManagement: React.FC<TurmaManagementProps> = ({ students, teachers })
         </div>
       )}
 
-      {/* Modal Frequência */}
+      {/* Modal Frequência - Mantido como estava */}
       {isAttendanceModalOpen && selectedTurma && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-900/40 backdrop-blur-md p-4 animate-fade-in">
           <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-lg border border-white/20">
